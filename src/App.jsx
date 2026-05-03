@@ -306,7 +306,7 @@ function Home({ setScreen, panier, kpis, enabledModes }) {
           <div className="profita-bar-header">
             <span className="profita-bar-label">Profitabilité du jour</span>
             <span className="profita-bar-pct" style={{color: kpis.margePct>=15?"#4CAF87":kpis.margePct>=5?"#FF8C69":"#E05252"}}>
-              {fmt(kpis.margePct,1)}% marge brute
+              {fmt(kpis.margePct,1)}{"% marge brute"}
             </span>
           </div>
           <div className="profita-track">
@@ -774,7 +774,7 @@ function Caisse({ setScreen, catalogue, panier, setPanier, validerVente, clients
                       <div className="tot-row tot-row--main"><span>TOTAL TTC</span><span>{fmt(totalTtc)} €</span></div>
                       <div className="tot-marge" style={{color:margePct>=50?"#4CAF87":"#FF8C69"}}>
                         <span>Marge brute</span>
-                        <span>{fmt(margeHt)} € · {Math.round(margePct)}%</span>
+                        <span>{fmt(margeHt)} € · {Math.round(margePct)}{"% "}</span>
                       </div>
                     </div>
                     <button className="btn-encaisser" onClick={()=>setPhase("paiement")}>
@@ -1119,7 +1119,7 @@ function SuccesEco({
           <div className="eco-amount">{fmt(tx.totalTtc)} <span>€</span></div>
           <div className="eco-marge">
             Marge brute : <strong>{fmt(tx.margeHt)} €</strong>
-            <span className="eco-pct">({Math.round(tx.margePct)}%)</span>
+            <span className="eco-pct">({Math.round(tx.margePct)}{"%)"})</span>
           </div>
           <div className="eco-badge">
             <span>🌿</span> Zéro papier · Reçu 100% numérique
@@ -1936,7 +1936,7 @@ function PsHL({ text, q }) {
   );
 }
 
-                            {Math.round(marge)}%
+                            {Math.round(marge)}{'%'}
                           </span>
                         </div>
 
@@ -2123,7 +2123,7 @@ function MesDonnees({ setScreen, catalogue, setCatalogue, enabledModes, setEnabl
               <div key={m.id} className="gd-sw-row" onClick={e => { e.stopPropagation(); setEnabledModes(p => ({...p,[m.id]:!p[m.id]})); }}>
                 <span className="gd-sw-icon">{m.icon}</span>
                 <span className="gd-sw-label">{m.label}</span>
-                {m.commission > 0 && <span className="gd-sw-comm">−{m.commission}%</span>}
+                {m.commission > 0 && <span className="gd-sw-comm">−{m.commission}{"%"}</span>}
                 <div className={`gd-msw${enabledModes[m.id]!==false?" gd-msw--on":""}`}
                   style={{"--sc": m.color}}>
                   <div className="gd-msw__thumb"/>
@@ -2428,7 +2428,7 @@ function MesDonneesDetail({ view, onBack, catalogue, setCatalogue, enabledModes,
                             <div className="rub2-card__footer">
                               <span className="rub2-card__cout">Achat {fmt(a.coutHt)} €</span>
                               <span className="rub2-card__marge-lbl" style={{ color: hc }}>
-                                {Math.round(marge)}% marge
+                                {Math.round(marge)}{"% marge"}
                               </span>
                               <button className="rub2-card__del"
                                 onClick={() => deleteArticleFromMarque(universId, marqueId, idx)}
@@ -2749,7 +2749,7 @@ function Finances({ setScreen, transactions, kpis }) {
         <div className="fin-kpi">
           <span className="fin-kpi__label">Marge brute</span>
           <span className="fin-kpi__val" style={{color:"#FF8C69"}}>{fmt(kpis.marge)} €</span>
-          <span className="fin-kpi__rate">{fmt(kpis.margePct,1)}%</span>
+          <span className="fin-kpi__rate">{fmt(kpis.margePct,1)}{"%"}</span>
         </div>
         <div className="fin-kpi fin-kpi--sep"/>
         <div className="fin-kpi">
@@ -2802,7 +2802,7 @@ function Finances({ setScreen, transactions, kpis }) {
                 <div className="tx-card__amounts">
                   <span className="tx-card__ttc">{fmt(tx.totalTtc)} €</span>
                   <span className="tx-card__marge" style={{color:tx.margePct>=50?"#4CAF87":"#FF8C69"}}>
-                    +{fmt(tx.margeHt)} € ({Math.round(tx.margePct)}%)
+                    +{fmt(tx.margeHt)} € ({Math.round(tx.margePct)}{"%)"}
                   </span>
                 </div>
               </div>
