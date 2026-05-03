@@ -1936,35 +1936,6 @@ function PsHL({ text, q }) {
   );
 }
 
-                            {Math.round(marge) + '%'}
-                          </span>
-                        </div>
-
-                        {/* Action */}
-                        <div className="ps-td ps-td--action">
-                          <button className="ps-del"
-                            onClick={() => deleteArticle(a.universId, a.marqueId, a.idx)}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                              stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                              <polyline points="3 6 5 6 21 6"/>
-                              <path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
-          );
-        })}
-      </div>
-
-    </div>
-  );
-}
-
 
 const TVA_RATES = [
   { id:"tva1", label:"Standard",    rate:20,  tag:"Boutique · Bar",    color:"#FF8C69" },
