@@ -306,7 +306,7 @@ function Home({ setScreen, panier, kpis, enabledModes }) {
           <div className="profita-bar-header">
             <span className="profita-bar-label">Profitabilité du jour</span>
             <span className="profita-bar-pct" style={{color: kpis.margePct>=15?"#4CAF87":kpis.margePct>=5?"#FF8C69":"#E05252"}}>
-              {fmt(kpis.margePct,1)}{"% marge brute"}
+              {fmt(kpis.margePct,1) + '% marge brute'}
             </span>
           </div>
           <div className="profita-track">
@@ -1501,7 +1501,7 @@ function Stocks({ setScreen, catalogue, setCatalogue }) {
                       <div className="stk-art__name">{a.nom}</div>
                       <div className="stk-art__tags">
                         <span className="stk-art__tag stk-art__tag--ttc">{fmt(a.prixTtc)} € TTC</span>
-                        <span className="stk-art__tag stk-art__tag--marge" style={{color:hc}}>{Math.round(marge)}% marge</span>
+                        <span className="stk-art__tag stk-art__tag--marge" style={{color:hc}}>{Math.round(marge) + "% marge"}</span>
                         {isLow && <span className="stk-art__tag stk-art__tag--alert">⚠ seuil {seuilVal}</span>}
                       </div>
                     </div>
@@ -1936,7 +1936,7 @@ function PsHL({ text, q }) {
   );
 }
 
-                            {Math.round(marge)}{'%'}
+                            {Math.round(marge) + '%'}
                           </span>
                         </div>
 
@@ -2123,7 +2123,7 @@ function MesDonnees({ setScreen, catalogue, setCatalogue, enabledModes, setEnabl
               <div key={m.id} className="gd-sw-row" onClick={e => { e.stopPropagation(); setEnabledModes(p => ({...p,[m.id]:!p[m.id]})); }}>
                 <span className="gd-sw-icon">{m.icon}</span>
                 <span className="gd-sw-label">{m.label}</span>
-                {m.commission > 0 && <span className="gd-sw-comm">−{m.commission}{"%"}</span>}
+                {m.commission > 0 && <span className="gd-sw-comm">−{m.commission + '%'}</span>}
                 <div className={`gd-msw${enabledModes[m.id]!==false?" gd-msw--on":""}`}
                   style={{"--sc": m.color}}>
                   <div className="gd-msw__thumb"/>
@@ -2157,7 +2157,7 @@ function MesDonnees({ setScreen, catalogue, setCatalogue, enabledModes, setEnabl
               <div key={i} className="gd-prev-tva">
                 <div className="gd-prev-tva__dot" style={{background:t.color}}/>
                 <span className="gd-prev-tva__tag">{t.tag}</span>
-                <span className="gd-prev-tva__rate" style={{color:t.color}}>{t.rate}%</span>
+                <span className="gd-prev-tva__rate" style={{color:t.color}}>{t.rate + "%"}</span>
               </div>
             ))}
             <div className="gd-prev-legal">
@@ -2428,7 +2428,7 @@ function MesDonneesDetail({ view, onBack, catalogue, setCatalogue, enabledModes,
                             <div className="rub2-card__footer">
                               <span className="rub2-card__cout">Achat {fmt(a.coutHt)} €</span>
                               <span className="rub2-card__marge-lbl" style={{ color: hc }}>
-                                {Math.round(marge)}{"% marge"}
+                                {Math.round(marge) + '% marge'}
                               </span>
                               <button className="rub2-card__del"
                                 onClick={() => deleteArticleFromMarque(universId, marqueId, idx)}
@@ -2514,7 +2514,7 @@ function MesDonneesDetail({ view, onBack, catalogue, setCatalogue, enabledModes,
                         return (
                           <div className="rub-sheet__marge-preview" style={{borderColor:`${c}30`}}>
                             <span>Marge brute estimée</span>
-                            <strong style={{color:c}}>{fmt(parseFloat(newArtForm.prixHt)-parseFloat(newArtForm.coutHt))} € · {Math.round(m)}%</strong>
+                            <strong style={{color:c}}>{fmt(parseFloat(newArtForm.prixHt)-parseFloat(newArtForm.coutHt))} € · {Math.round(m) + "%"}</strong>
                           </div>
                         );
                       })()}
@@ -2749,7 +2749,7 @@ function Finances({ setScreen, transactions, kpis }) {
         <div className="fin-kpi">
           <span className="fin-kpi__label">Marge brute</span>
           <span className="fin-kpi__val" style={{color:"#FF8C69"}}>{fmt(kpis.marge)} €</span>
-          <span className="fin-kpi__rate">{fmt(kpis.margePct,1)}{"%"}</span>
+          <span className="fin-kpi__rate">{fmt(kpis.margePct,1) + '%'}</span>
         </div>
         <div className="fin-kpi fin-kpi--sep"/>
         <div className="fin-kpi">
