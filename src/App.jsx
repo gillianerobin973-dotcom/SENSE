@@ -223,7 +223,7 @@ const DEMO_TENANTS = [
 // ──────────────────────────────────────────────────────────────────────
 // Composant Principal
 // ──────────────────────────────────────────────────────────────────────
-function SuperAdmin() {
+export default function SuperAdmin() {
   const [view,         setView]        = useState("dashboard"); // dashboard | tenants | create | tenant-detail | audit
   const [tenants,      setTenants]     = useState(DEMO_TENANTS);
   const [selected,     setSelected]    = useState(null);
@@ -311,7 +311,7 @@ function SuperAdmin() {
 
   return (
     <>
-      <style>{CSS_SA}</style>
+      <style>{CSS}</style>
       <div className="sa-root">
 
         {/* ── Sidebar ── */}
@@ -1252,7 +1252,7 @@ export default function App() {
 
   return (
     <>
-      <style>{CSS_SA}</style>
+      <style>{CSS}</style>
       <div className={`root ${mounted?"mounted":""}`}>
         <Ambient />
         <ToastStack toasts={toasts} />
@@ -3906,7 +3906,7 @@ function Ambient() {
 // ══════════════════════════════════════════════════════════════════════
 // CSS
 // ══════════════════════════════════════════════════════════════════════
-const CSS_SA = `
+const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
