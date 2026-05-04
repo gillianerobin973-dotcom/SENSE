@@ -161,7 +161,7 @@ function deduireStock(catalogue, universId, marqueId, articleId, qty=1) {
 // ══════════════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════════════
-// SUPER-ADMIN — Interface God Mode
+// SUPER-ADMIN — Interface God Mode ✓
 // ══════════════════════════════════════════════════════════════════════
 
 
@@ -320,7 +320,7 @@ export default function SuperAdmin() {
             <span className="sa-logo__icon">N</span>
             <div>
               <div className="sa-logo__title">NovaCaisse</div>
-              <div className="sa-logo__sub">God Mode</div>
+              <div className="sa-logo__sub">God Mode ✓</div>
             </div>
           </div>
 
