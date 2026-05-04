@@ -223,7 +223,7 @@ const DEMO_TENANTS = [
 // ──────────────────────────────────────────────────────────────────────
 // Composant Principal
 // ──────────────────────────────────────────────────────────────────────
-export default function SuperAdmin() {
+function SuperAdmin() {
   const [view,         setView]        = useState("dashboard"); // dashboard | tenants | create | tenant-detail | audit
   const [tenants,      setTenants]     = useState(DEMO_TENANTS);
   const [selected,     setSelected]    = useState(null);
