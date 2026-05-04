@@ -937,7 +937,7 @@ const CSS = `
 
 body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
 
-.sa-root{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sa-root{--bg:#0E0D0C;--bg2:#161513;--bg3:#1E1C1A;--line:rgba(255,255,255,.07);--text:#F5F0EB;--t2:#A89F96;--t3:#6B635C;--salmon:#FF8C69;--salmon-d:#E8704A;--green:#4CAF87;--red:#E05252;--amber:#F59E0B;--blue:#5B9EF5;--purple:#A78BFA;--r:12px;--rsm:8px;background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans-serif;display:grid;grid-template-columns:240px 1fr;min-height:100vh}
 
 /* Sidebar */
 .sa-sidebar{
