@@ -161,7 +161,7 @@ function deduireStock(catalogue, universId, marqueId, articleId, qty=1) {
 // ══════════════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════════════
-// SUPER-ADMIN — Interface God Mode ✓
+// SUPER-ADMIN — Interface God Mode
 // ══════════════════════════════════════════════════════════════════════
 
 
@@ -224,446 +224,437 @@ const DEMO_TENANTS = [
 // Composant Principal
 // ──────────────────────────────────────────────────────────────────────
 function SuperAdmin() {
-  const [view,         setView]        = useState("dashboard"); // dashboard | tenants | create | tenant-detail | audit
-  const [tenants,      setTenants]     = useState(DEMO_TENANTS);
-  const [selected,     setSelected]    = useState(null);
-  const [createForm,   setCreateForm]  = useState(defaultForm());
-  const [searchTenant, setSearchTenant]= useState("");
-  const [filterStatus, setFilterStatus]= useState("all");
-  const [auditLogs,    setAuditLogs]   = useState(demoAuditLogs());
-  const [toasts,       setToasts]      = useState([]);
+  const [view, setView] = useState("dashboard");
+  const [tenants, setTenants] = useState([
+    { id:"t1", name:"Shop In Café", slug:"shop-in-cafe", status:"active", plan:"Pro", color:"#FF8C69", users:3, products:42, revenue:12450, modules:["pos","stock","finance","flux_masse"] },
+    { id:"t2", name:"Boutique Élite", slug:"boutique-elite", status:"trial", plan:"Starter", color:"#A78BFA", users:1, products:8, revenue:0, modules:["pos","stock"] },
+    { id:"t3", name:"TechRepair Pro", slug:"techrepair", status:"active", plan:"Enterprise", color:"#5B9EF5", users:7, products:234, revenue:38900, modules:["pos","stock","finance","flux_id","flux_seg"] },
+  ]);
+  const [form, setForm] = useState({ name:"", slug:"", color:"#FF8C69", plan:"Pro", status:"trial", modules:["pos","stock","finance"] });
+  const [selected, setSelected] = useState(null);
+  const [toast, setToast] = useState(null);
 
-  function toast(msg, type="success") {
-    const id = Date.now();
-    setToasts(p => [...p, { id, msg, type }]);
-    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500);
-  }
-
-  function defaultForm() {
-    return {
-      name: "", slug: "", business_type: "retail", plan: "pro",
-      primary_color: "#FF8C69", secondary_color: "#1A1612",
-      accent_color: "#4CAF87", logo_url: "",
-      modules: ["pos","stock","finance"],
-      flux_masse: false, flux_identite: false, flux_dispo: false, flux_segment: false,
-      quota_users: 5, quota_products: 500,
-      status: "trial",
-    };
-  }
-
-  function createTenant() {
-    if (!createForm.name || !createForm.slug) { toast("Nom et slug requis", "error"); return; }
-    const newT = {
-      id: Date.now().toString(),
-      ...createForm,
-      users: 0, products: 0, revenue: 0,
-    };
-    setTenants(p => [...p, newT]);
-    setCreateForm(defaultForm());
-    setView("tenants");
-    toast(`✓ ${newT.name} créé avec succès`);
-  }
-
-  function toggleModule(mod) {
-    setCreateForm(p => ({
-      ...p,
-      modules: p.modules.includes(mod)
-        ? p.modules.filter(m => m !== mod)
-        : [...p.modules, mod]
-    }));
-  }
-
-  function toggleTenantModule(tenantId, mod) {
-    setTenants(p => p.map(t => t.id !== tenantId ? t : {
-      ...t,
-      modules: t.modules.includes(mod) ? t.modules.filter(m => m !== mod) : [...t.modules, mod]
-    }));
-    toast(`Module mis à jour`);
-  }
-
-  function suspendTenant(id) {
-    setTenants(p => p.map(t => t.id !== id ? t :
-      { ...t, status: t.status === "suspended" ? "active" : "suspended" }));
-    const t = tenants.find(t => t.id === id);
-    toast(t?.status === "suspended" ? `${t.name} réactivé` : `${t?.name} suspendu`, "warning");
-  }
-
-  function injectDemo(id) {
-    setTenants(p => p.map(t => t.id !== id ? t :
-      { ...t, products: 42, users: 3, revenue: 5200 }));
-    toast("✓ Données démo injectées");
-  }
-
-  const filtered = tenants.filter(t => {
-    const q = searchTenant.toLowerCase();
-    const matchQ = !q || t.name.toLowerCase().includes(q) || t.slug.includes(q);
-    const matchS = filterStatus === "all" || t.status === filterStatus;
-    return matchQ && matchS;
-  });
+  const showToast = (msg, type="success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const stats = {
     total: tenants.length,
     active: tenants.filter(t => t.status === "active").length,
     trial: tenants.filter(t => t.status === "trial").length,
     suspended: tenants.filter(t => t.status === "suspended").length,
-    revenue: tenants.reduce((s, t) => s + (t.revenue || 0), 0),
+    mrr: tenants.reduce((s,t) => s + (t.revenue||0), 0),
   };
 
+  const S = {
+    root: { display:"flex", minHeight:"100vh", background:"#0E0D0C", color:"#F5F0EB", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    sidebar: { width:220, background:"#161513", borderRight:"1px solid rgba(255,255,255,.07)", display:"flex", flexDirection:"column", padding:"0" },
+    logo: { padding:"24px 20px", borderBottom:"1px solid rgba(255,255,255,.07)", display:"flex", alignItems:"center", gap:12 },
+    logoIcon: { width:38, height:38, borderRadius:10, background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontWeight:900, fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" },
+    logoTitle: { fontSize:15, fontWeight:800 },
+    logoSub: { fontSize:11, color:"#FF8C69", fontWeight:600, textTransform:"uppercase", letterSpacing:".06em" },
+    nav: { padding:"12px", display:"flex", flexDirection:"column", gap:2, flex:1 },
+    navItem: (active) => ({ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:8, border:"none", background: active ? "rgba(255,140,105,.1)" : "transparent", color: active ? "#FF8C69" : "#A89F96", fontFamily:"inherit", fontSize:13, fontWeight:500, cursor:"pointer", textAlign:"left" }),
+    main: { flex:1, padding:"32px 28px" },
+    pageTitle: { fontFamily:"'DM Serif Display',serif", fontSize:28, letterSpacing:"-.02em", marginBottom:4 },
+    pageSub: { fontSize:13, color:"#6B635C", marginBottom:24 },
+    header: { display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:24 },
+    kpis: { display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:24 },
+    kpi: (color) => ({ background:"#161513", border:"1px solid rgba(255,255,255,.07)", borderRadius:12, padding:"16px 20px" }),
+    kpiVal: (color) => ({ fontFamily:"'DM Serif Display',serif", fontSize:28, color: color||"#F5F0EB", marginBottom:4 }),
+    kpiLabel: { fontSize:12, color:"#6B635C" },
+    card: { background:"#161513", border:"1px solid rgba(255,255,255,.07)", borderRadius:14, padding:20, marginBottom:16 },
+    cardTitle: { fontSize:16, fontWeight:700, marginBottom:16 },
+    row: { display:"flex", alignItems:"center", gap:12, padding:"12px 0", borderBottom:"1px solid rgba(255,255,255,.05)" },
+    dot: (color) => ({ width:6, height:40, borderRadius:3, background:color, flexShrink:0 }),
+    tenantName: { fontSize:14, fontWeight:700, flex:1, cursor:"pointer" },
+    tenantSlug: { fontSize:11, color:"#6B635C" },
+    badge: (status) => ({
+      padding:"3px 10px", borderRadius:100, fontSize:11, fontWeight:700,
+      color: status==="active" ? "#2D9B6F" : status==="trial" ? "#F59E0B" : "#E05252",
+      background: status==="active" ? "rgba(76,175,135,.12)" : status==="trial" ? "rgba(245,158,11,.12)" : "rgba(224,82,82,.12)",
+    }),
+    btn: (variant) => ({
+      padding: variant==="sm" ? "6px 12px" : "10px 18px",
+      borderRadius:8, border:"none", fontFamily:"inherit",
+      fontSize: variant==="sm" ? 11 : 13, fontWeight:700, cursor:"pointer",
+      background: variant==="primary" ? "linear-gradient(135deg,#FF8C69,#E8704A)" : variant==="danger" ? "rgba(224,82,82,.12)" : "rgba(255,255,255,.05)",
+      color: variant==="primary" ? "#fff" : variant==="danger" ? "#E05252" : "#A89F96",
+      border: variant==="ghost" ? "1px solid rgba(255,255,255,.1)" : "none",
+    }),
+    input: { background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.1)", borderRadius:8, padding:"10px 14px", color:"#F5F0EB", fontFamily:"inherit", fontSize:14, width:"100%", outline:"none" },
+    label: { fontSize:11, fontWeight:700, color:"#6B635C", textTransform:"uppercase", letterSpacing:".08em", display:"block", marginBottom:6 },
+    field: { marginBottom:16 },
+    grid2: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 },
+    footer: { borderTop:"1px solid rgba(255,255,255,.07)", padding:"16px 20px", display:"flex", alignItems:"center", gap:10 },
+    avatar: { width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontSize:13, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" },
+    toastBox: (type) => ({ position:"fixed", bottom:24, right:24, padding:"12px 18px", borderRadius:8, fontWeight:600, fontSize:13, background: type==="success" ? "#2D9B6F" : "#E05252", color:"#fff", zIndex:9999, boxShadow:"0 8px 24px rgba(0,0,0,.4)" }),
+    sectionTitle: { fontSize:11, fontWeight:800, color:"#6B635C", textTransform:"uppercase", letterSpacing:".1em", paddingBottom:12, marginBottom:12, borderBottom:"1px solid rgba(255,255,255,.05)" },
+    modRow: { display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,.04)" },
+    switchWrap: (on) => ({ width:44, height:24, borderRadius:12, background: on ? "#FF8C69" : "rgba(255,255,255,.1)", padding:2, display:"flex", alignItems:"center", cursor:"pointer", transition:"background .2s", flexShrink:0 }),
+    switchThumb: (on) => ({ width:20, height:20, borderRadius:"50%", background:"#fff", boxShadow:"0 1px 4px rgba(0,0,0,.3)", transform: on ? "translateX(20px)" : "none", transition:"transform .2s" }),
+  };
+
+  const MODS = [
+    { id:"pos", label:"Caisse POS", icon:"🧾" },
+    { id:"stock", label:"Stocks", icon:"📦" },
+    { id:"finance", label:"Finances", icon:"💰" },
+    { id:"flux_masse", label:"Flux Masse", icon:"⚖️", desc:"Poids/Volume/Vrac" },
+    { id:"flux_id", label:"Flux Identité", icon:"🔖", desc:"IMEI/Série/Garantie" },
+    { id:"flux_dispo", label:"Flux Disponibilité", icon:"📅", desc:"Location/Réservation" },
+    { id:"flux_seg", label:"Flux Segmentation", icon:"🎨", desc:"Variantes/Tailles" },
+    { id:"loyalty", label:"Fidélité", icon:"⭐" },
+    { id:"booking", label:"Réservations", icon:"🗓️" },
+  ];
+
+  const navItems = [
+    { id:"dashboard", label:"Dashboard", icon:"◉" },
+    { id:"tenants", label:"Tenants", icon:"⬡" },
+    { id:"create", label:"Nouveau Tenant", icon:"+" },
+    { id:"audit", label:"Audit Log", icon:"⊙" },
+  ];
+
   return (
-    <>
-      <style>{CSS_SA}</style>
-      <div className="sa-root">
-
-        {/* ── Sidebar ── */}
-        <aside className="sa-sidebar">
-          <div className="sa-logo">
-            <span className="sa-logo__icon">N</span>
-            <div>
-              <div className="sa-logo__title">NovaCaisse</div>
-              <div className="sa-logo__sub">God Mode ✓</div>
-            </div>
+    <div style={S.root}>
+      {/* Sidebar */}
+      <aside style={S.sidebar}>
+        <div style={S.logo}>
+          <div style={S.logoIcon}>N</div>
+          <div>
+            <div style={S.logoTitle}>NovaCaisse</div>
+            <div style={S.logoSub}>God Mode</div>
           </div>
+        </div>
+        <nav style={S.nav}>
+          {navItems.map(item => (
+            <button key={item.id} style={S.navItem(view===item.id)} onClick={() => { setView(item.id); setSelected(null); }}>
+              <span style={{ fontSize:15, width:18, textAlign:"center" }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div style={S.footer}>
+          <div style={S.avatar}>G</div>
+          <div>
+            <div style={{ fontSize:13, fontWeight:600 }}>Gilliane Robin</div>
+            <div style={{ fontSize:11, color:"#FF8C69", fontWeight:600 }}>Super Admin</div>
+          </div>
+        </div>
+      </aside>
 
-          <nav className="sa-nav">
-            {[
-              { id: "dashboard", icon: "◉", label: "Dashboard" },
-              { id: "tenants",   icon: "⬡", label: "Tenants" },
-              { id: "create",    icon: "+", label: "Nouveau Tenant" },
-              { id: "audit",     icon: "⊙", label: "Audit Log" },
-            ].map(item => (
-              <button key={item.id}
-                className={`sa-nav__item${view === item.id ? " sa-nav__item--active" : ""}`}
-                onClick={() => setView(item.id)}>
-                <span className="sa-nav__icon">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
+      {/* Main */}
+      <main style={S.main}>
 
-          <div className="sa-sidebar__footer">
-            <div className="sa-user">
-              <div className="sa-user__avatar">G</div>
+        {/* DASHBOARD */}
+        {view === "dashboard" && !selected && (
+          <div>
+            <div style={S.header}>
               <div>
-                <div className="sa-user__name">Gilliane Robin</div>
-                <div className="sa-user__role">Super Admin</div>
+                <div style={S.pageTitle}>Tableau de bord</div>
+                <div style={S.pageSub}>Vue globale de la plateforme NovaCaisse</div>
               </div>
+              <div style={{ fontSize:13, color:"#6B635C" }}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</div>
+            </div>
+            <div style={S.kpis}>
+              {[
+                { val:stats.total, label:"Tenants total", color:"#F5F0EB" },
+                { val:stats.active, label:"Actifs", color:"#4CAF87" },
+                { val:stats.trial, label:"En essai", color:"#F59E0B" },
+                { val:stats.suspended, label:"Suspendus", color:"#E05252" },
+                { val:stats.mrr.toLocaleString("fr-FR")+" €", label:"MRR estimé", color:"#FF8C69" },
+              ].map((k,i) => (
+                <div key={i} style={S.kpi()}>
+                  <div style={S.kpiVal(k.color)}>{k.val}</div>
+                  <div style={S.kpiLabel}>{k.label}</div>
+                </div>
+              ))}
+            </div>
+            <div style={S.card}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                <div style={S.cardTitle}>Tenants récents</div>
+                <button style={S.btn("ghost")} onClick={() => setView("tenants")}>Voir tout →</button>
+              </div>
+              {tenants.map(t => (
+                <div key={t.id} style={S.row}>
+                  <div style={S.dot(t.color)}/>
+                  <div style={{ flex:1, cursor:"pointer" }} onClick={() => { setSelected(t); setView("detail"); }}>
+                    <div style={S.tenantName}>{t.name}</div>
+                    <div style={S.tenantSlug}>/{t.slug} · {t.plan}</div>
+                  </div>
+                  <div style={{ display:"flex", gap:12, fontSize:12, color:"#A89F96" }}>
+                    <span>{t.users} users</span>
+                    <span>{t.products} produits</span>
+                    <span>{(t.revenue||0).toLocaleString("fr-FR")} €</span>
+                  </div>
+                  <span style={S.badge(t.status)}>{t.status === "active" ? "Actif" : t.status === "trial" ? "Essai" : "Suspendu"}</span>
+                </div>
+              ))}
             </div>
           </div>
-        </aside>
+        )}
 
-        {/* ── Contenu principal ── */}
-        <main className="sa-main">
-
-          {/* DASHBOARD */}
-          {view === "dashboard" && (
-            <div className="sa-page fadein">
-              <header className="sa-page__header">
-                <div>
-                  <h1 className="sa-page__title">Tableau de bord</h1>
-                  <p className="sa-page__sub">Vue globale de la plateforme NovaCaisse</p>
+        {/* TENANTS */}
+        {view === "tenants" && !selected && (
+          <div>
+            <div style={S.header}>
+              <div>
+                <div style={S.pageTitle}>Tenants</div>
+                <div style={S.pageSub}>{tenants.length} entreprises</div>
+              </div>
+              <button style={S.btn("primary")} onClick={() => setView("create")}>+ Nouveau Tenant</button>
+            </div>
+            <div style={S.card}>
+              {tenants.map(t => (
+                <div key={t.id} style={S.row}>
+                  <div style={S.dot(t.color)}/>
+                  <div style={{ flex:1, cursor:"pointer" }} onClick={() => { setSelected(t); setView("detail"); }}>
+                    <div style={S.tenantName}>{t.name}</div>
+                    <div style={S.tenantSlug}>/{t.slug} · {t.plan}</div>
+                  </div>
+                  <div style={{ display:"flex", gap:12, fontSize:12, color:"#A89F96" }}>
+                    <span>{t.users} users</span><span>{t.products} produits</span>
+                  </div>
+                  <span style={S.badge(t.status)}>{t.status === "active" ? "Actif" : t.status === "trial" ? "Essai" : "Suspendu"}</span>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <button style={S.btn("sm")} onClick={() => { setSelected(t); setView("detail"); }}>⚙</button>
+                    <button style={{ ...S.btn("sm"), color: t.status==="suspended"?"#4CAF87":"#E05252" }}
+                      onClick={() => {
+                        setTenants(p => p.map(x => x.id!==t.id?x:{...x,status:x.status==="suspended"?"active":"suspended"}));
+                        showToast(t.status==="suspended"?`${t.name} réactivé`:`${t.name} suspendu`);
+                      }}>
+                      {t.status==="suspended"?"▶":"⏸"}
+                    </button>
+                  </div>
                 </div>
-                <div className="sa-header__date">{new Date().toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long" })}</div>
-              </header>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* DÉTAIL TENANT */}
+        {view === "detail" && selected && (() => {
+          const t = tenants.find(x => x.id === selected.id) || selected;
+          return (
+            <div>
+              <div style={S.header}>
+                <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                  <button style={S.btn("ghost")} onClick={() => { setSelected(null); setView("tenants"); }}>←</button>
+                  <div style={{ width:10, height:52, borderRadius:5, background:t.color, flexShrink:0 }}/>
+                  <div>
+                    <div style={S.pageTitle}>{t.name}</div>
+                    <div style={S.pageSub}>/b/{t.slug} · {t.plan}</div>
+                  </div>
+                </div>
+                <button style={{ ...S.btn(), color: t.status==="suspended"?"#4CAF87":"#E05252", border:"1px solid", borderColor: t.status==="suspended"?"rgba(76,175,135,.3)":"rgba(224,82,82,.3)", background: t.status==="suspended"?"rgba(76,175,135,.08)":"rgba(224,82,82,.08)" }}
+                  onClick={() => {
+                    setTenants(p => p.map(x => x.id!==t.id?x:{...x,status:x.status==="suspended"?"active":"suspended"}));
+                    showToast(t.status==="suspended"?`${t.name} réactivé`:`${t.name} suspendu`);
+                  }}>
+                  {t.status==="suspended"?"▶ Réactiver":"⏸ Suspendre"}
+                </button>
+              </div>
 
               {/* KPIs */}
-              <div className="sa-kpis">
-                <div className="sa-kpi">
-                  <div className="sa-kpi__val">{stats.total}</div>
-                  <div className="sa-kpi__label">Tenants total</div>
-                </div>
-                <div className="sa-kpi sa-kpi--green">
-                  <div className="sa-kpi__val">{stats.active}</div>
-                  <div className="sa-kpi__label">Actifs</div>
-                </div>
-                <div className="sa-kpi sa-kpi--amber">
-                  <div className="sa-kpi__val">{stats.trial}</div>
-                  <div className="sa-kpi__label">En essai</div>
-                </div>
-                <div className="sa-kpi sa-kpi--red">
-                  <div className="sa-kpi__val">{stats.suspended}</div>
-                  <div className="sa-kpi__label">Suspendus</div>
-                </div>
-                <div className="sa-kpi sa-kpi--accent">
-                  <div className="sa-kpi__val">{stats.revenue.toLocaleString("fr-FR")} €</div>
-                  <div className="sa-kpi__label">MRR estimé</div>
-                </div>
-              </div>
-
-              {/* Liste rapide tenants */}
-              <div className="sa-card">
-                <div className="sa-card__head">
-                  <h2 className="sa-card__title">Tenants récents</h2>
-                  <button className="sa-btn sa-btn--ghost" onClick={() => setView("tenants")}>Voir tout →</button>
-                </div>
-                {tenants.slice(0, 5).map(t => (
-                  <TenantRow key={t.id} tenant={t}
-                    onSelect={() => { setSelected(t); setView("tenant-detail"); }}
-                    onSuspend={() => suspendTenant(t.id)}
-                    onDemo={() => injectDemo(t.id)}
-                  />
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:16 }}>
+                {[
+                  { val:t.users, label:"Utilisateurs", color:"#F5F0EB" },
+                  { val:t.products, label:"Produits", color:"#F5F0EB" },
+                  { val:(t.revenue||0).toLocaleString("fr-FR")+" €", label:"CA total", color:"#FF8C69" },
+                  { val:t.status==="active"?"Actif":t.status==="trial"?"Essai":"Suspendu", label:"Statut",
+                    color:t.status==="active"?"#4CAF87":t.status==="trial"?"#F59E0B":"#E05252" },
+                ].map((k,i) => (
+                  <div key={i} style={S.kpi()}>
+                    <div style={S.kpiVal(k.color)}>{k.val}</div>
+                    <div style={S.kpiLabel}>{k.label}</div>
+                  </div>
                 ))}
               </div>
-            </div>
-          )}
 
-          {/* LISTE TENANTS */}
-          {view === "tenants" && (
-            <div className="sa-page fadein">
-              <header className="sa-page__header">
-                <div>
-                  <h1 className="sa-page__title">Tenants</h1>
-                  <p className="sa-page__sub">{filtered.length} entreprise{filtered.length > 1 ? "s" : ""}</p>
-                </div>
-                <button className="sa-btn sa-btn--primary" onClick={() => setView("create")}>+ Nouveau Tenant</button>
-              </header>
-
-              <div className="sa-filters">
-                <input className="sa-search" placeholder="Rechercher…"
-                  value={searchTenant} onChange={e => setSearchTenant(e.target.value)}/>
-                <div className="sa-filter-btns">
-                  {["all","active","trial","suspended"].map(s => (
-                    <button key={s}
-                      className={`sa-filter-btn${filterStatus === s ? " active" : ""}`}
-                      onClick={() => setFilterStatus(s)}>
-                      {s === "all" ? "Tous" : s.charAt(0).toUpperCase() + s.slice(1)}
-                    </button>
+              <div style={S.grid2}>
+                {/* Modules */}
+                <div style={S.card}>
+                  <div style={S.sectionTitle}>Modules & Flux actifs</div>
+                  {MODS.map(mod => (
+                    <div key={mod.id} style={S.modRow}>
+                      <span style={{ fontSize:18, width:24 }}>{mod.icon}</span>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13, fontWeight:600 }}>{mod.label}</div>
+                        {mod.desc && <div style={{ fontSize:11, color:"#6B635C" }}>{mod.desc}</div>}
+                      </div>
+                      <div style={S.switchWrap(t.modules?.includes(mod.id))}
+                        onClick={() => {
+                          setTenants(p => p.map(x => x.id!==t.id?x:{...x,
+                            modules:x.modules.includes(mod.id)?x.modules.filter(m=>m!==mod.id):[...x.modules,mod.id]}));
+                          showToast("Module mis à jour");
+                        }}>
+                        <div style={S.switchThumb(t.modules?.includes(mod.id))}/>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
 
-              <div className="sa-card">
-                {filtered.map(t => (
-                  <TenantRow key={t.id} tenant={t}
-                    onSelect={() => { setSelected(t); setView("tenant-detail"); }}
-                    onSuspend={() => suspendTenant(t.id)}
-                    onDemo={() => injectDemo(t.id)}
-                  />
-                ))}
+                {/* Branding + Quotas */}
+                <div>
+                  <div style={S.card}>
+                    <div style={S.sectionTitle}>Branding</div>
+                    <div style={{ display:"flex", alignItems:"center", gap:12, padding:16, borderRadius:10, background:`${t.color}15`, border:`1px solid ${t.color}33`, marginBottom:16 }}>
+                      <div style={{ width:40, height:40, borderRadius:"50%", background:t.color }}/>
+                      <div>
+                        <div style={{ fontSize:16, fontWeight:700, color:t.color }}>{t.name}</div>
+                        <div style={{ fontSize:12, color:"#6B635C" }}>/{t.slug}</div>
+                      </div>
+                    </div>
+                    <div style={S.field}>
+                      <label style={S.label}>Couleur principale</label>
+                      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                        <input type="color" value={t.color} style={{ width:42, height:38, border:"1px solid rgba(255,255,255,.1)", borderRadius:8, background:"transparent", cursor:"pointer", padding:2 }}
+                          onChange={e => setTenants(p => p.map(x => x.id!==t.id?x:{...x,color:e.target.value}))}/>
+                        <input style={{ ...S.input, width:110 }} value={t.color}
+                          onChange={e => setTenants(p => p.map(x => x.id!==t.id?x:{...x,color:e.target.value}))}/>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={S.card}>
+                    <div style={S.sectionTitle}>Quotas</div>
+                    {[
+                      { label:"Utilisateurs", val:t.users, max:10 },
+                      { label:"Produits", val:t.products, max:1000 },
+                    ].map((q,i) => {
+                      const pct = Math.round((q.val/q.max)*100);
+                      return (
+                        <div key={i} style={{ marginBottom:12 }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"#A89F96", marginBottom:6 }}>
+                            <span>{q.label}</span><span>{q.val} / {q.max}</span>
+                          </div>
+                          <div style={{ height:6, background:"rgba(255,255,255,.07)", borderRadius:3 }}>
+                            <div style={{ height:"100%", borderRadius:3, background:pct>80?"#E05252":"#4CAF87", width:`${Math.min(100,pct)}%` }}/>
+                          </div>
+                          {pct>80 && <div style={{ fontSize:11, color:"#E05252", fontWeight:600, marginTop:4 }}>⚠ Limite proche</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+          );
+        })()}
 
-          {/* CRÉATION TENANT */}
-          {view === "create" && (
-            <div className="sa-page fadein">
-              <header className="sa-page__header">
-                <div>
-                  <h1 className="sa-page__title">Nouveau Tenant</h1>
-                  <p className="sa-page__sub">Déployer une nouvelle instance NovaCaisse</p>
+        {/* CRÉER TENANT */}
+        {view === "create" && (
+          <div>
+            <div style={S.header}>
+              <div>
+                <div style={S.pageTitle}>Nouveau Tenant</div>
+                <div style={S.pageSub}>Déployer une nouvelle instance NovaCaisse</div>
+              </div>
+              <button style={S.btn("ghost")} onClick={() => setView("tenants")}>← Retour</button>
+            </div>
+            <div style={S.grid2}>
+              <div style={S.card}>
+                <div style={S.sectionTitle}>Informations</div>
+                <div style={S.field}>
+                  <label style={S.label}>Nom de l'entreprise</label>
+                  <input style={S.input} placeholder="ex: Ma Boutique" value={form.name}
+                    onChange={e => setForm(p => ({...p, name:e.target.value, slug:e.target.value.toLowerCase().replace(/[^a-z0-9]/g,"-")}))}/>
                 </div>
-                <button className="sa-btn sa-btn--ghost" onClick={() => setView("tenants")}>← Retour</button>
-              </header>
-
-              <div className="sa-create-grid">
-
-                {/* Colonne gauche : infos de base */}
-                <div className="sa-col">
-                  <div className="sa-card">
-                    <h3 className="sa-section-title">Informations</h3>
-                    <div className="sa-field">
-                      <label className="sa-label">Nom de l'entreprise</label>
-                      <input className="sa-input" placeholder="ex: Ma Boutique Paris"
-                        value={createForm.name}
-                        onChange={e => setCreateForm(p => ({...p, name: e.target.value,
-                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "-")}))}/>
-                    </div>
-                    <div className="sa-field">
-                      <label className="sa-label">Slug URL</label>
-                      <div className="sa-input-prefix">
-                        <span className="sa-prefix">/b/</span>
-                        <input className="sa-input sa-input--slug" placeholder="ma-boutique-paris"
-                          value={createForm.slug}
-                          onChange={e => setCreateForm(p => ({...p, slug: e.target.value}))}/>
-                      </div>
-                    </div>
-                    <div className="sa-field">
-                      <label className="sa-label">Type d'activité</label>
-                      <div className="sa-biz-grid">
-                        {BUSINESS_TYPES.map(bt => (
-                          <button key={bt.id}
-                            className={`sa-biz-btn${createForm.business_type === bt.id ? " active" : ""}`}
-                            onClick={() => setCreateForm(p => ({...p, business_type: bt.id}))}>
-                            <span>{bt.icon}</span>
-                            <span>{bt.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="sa-field">
-                      <label className="sa-label">Plan de facturation</label>
-                      <div className="sa-plans-grid">
-                        {PLANS.map(pl => (
-                          <button key={pl.id}
-                            className={`sa-plan-btn${createForm.plan === pl.id ? " active" : ""}`}
-                            style={{ "--pc": pl.color }}
-                            onClick={() => setCreateForm(p => ({...p, plan: pl.id}))}>
-                            <span className="sa-plan-name">{pl.label}</span>
-                            <span className="sa-plan-price">{pl.price} €/mois</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quotas */}
-                  <div className="sa-card">
-                    <h3 className="sa-section-title">Quotas</h3>
-                    <div className="sa-field-row">
-                      <div className="sa-field">
-                        <label className="sa-label">Max utilisateurs</label>
-                        <input className="sa-input" type="number" min="1"
-                          value={createForm.quota_users}
-                          onChange={e => setCreateForm(p => ({...p, quota_users: +e.target.value}))}/>
-                      </div>
-                      <div className="sa-field">
-                        <label className="sa-label">Max produits</label>
-                        <input className="sa-input" type="number" min="1"
-                          value={createForm.quota_products}
-                          onChange={e => setCreateForm(p => ({...p, quota_products: +e.target.value}))}/>
-                      </div>
-                    </div>
-                  </div>
+                <div style={S.field}>
+                  <label style={S.label}>Slug URL</label>
+                  <input style={S.input} placeholder="ma-boutique" value={form.slug}
+                    onChange={e => setForm(p => ({...p, slug:e.target.value}))}/>
                 </div>
-
-                {/* Colonne droite : branding + modules */}
-                <div className="sa-col">
-
-                  {/* Branding */}
-                  <div className="sa-card">
-                    <h3 className="sa-section-title">Branding</h3>
-                    <div className="sa-brand-preview" style={{
-                      background: `linear-gradient(135deg, ${createForm.primary_color}22, ${createForm.accent_color}11)`,
-                      borderColor: createForm.primary_color + "44"
-                    }}>
-                      <div className="sa-brand-dot" style={{ background: createForm.primary_color }}/>
-                      <div>
-                        <div className="sa-brand-name" style={{ color: createForm.primary_color }}>
-                          {createForm.name || "Nom de l'entreprise"}
-                        </div>
-                        <div className="sa-brand-slug">/{createForm.slug || "slug"}</div>
-                      </div>
-                    </div>
-                    <div className="sa-field-row">
-                      <div className="sa-field">
-                        <label className="sa-label">Couleur principale</label>
-                        <div className="sa-color-wrap">
-                          <input type="color" className="sa-color-input"
-                            value={createForm.primary_color}
-                            onChange={e => setCreateForm(p => ({...p, primary_color: e.target.value}))}/>
-                          <input className="sa-input sa-input--hex"
-                            value={createForm.primary_color}
-                            onChange={e => setCreateForm(p => ({...p, primary_color: e.target.value}))}/>
-                        </div>
-                      </div>
-                      <div className="sa-field">
-                        <label className="sa-label">Couleur accent</label>
-                        <div className="sa-color-wrap">
-                          <input type="color" className="sa-color-input"
-                            value={createForm.accent_color}
-                            onChange={e => setCreateForm(p => ({...p, accent_color: e.target.value}))}/>
-                          <input className="sa-input sa-input--hex"
-                            value={createForm.accent_color}
-                            onChange={e => setCreateForm(p => ({...p, accent_color: e.target.value}))}/>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="sa-field">
-                      <label className="sa-label">URL du logo</label>
-                      <input className="sa-input" placeholder="https://..."
-                        value={createForm.logo_url}
-                        onChange={e => setCreateForm(p => ({...p, logo_url: e.target.value}))}/>
-                    </div>
-                  </div>
-
-                  {/* Modules */}
-                  <div className="sa-card">
-                    <h3 className="sa-section-title">Modules & Flux Logiques</h3>
-
-                    {["core","flux","premium"].map(cat => (
-                      <div key={cat} className="sa-mod-group">
-                        <div className="sa-mod-cat">
-                          {cat === "core" ? "CORE" : cat === "flux" ? "FLUX LOGIQUES" : "PREMIUM"}
-                        </div>
-                        {MODULES.filter(m => m.cat === cat).map(mod => (
-                          <label key={mod.id} className="sa-mod-row">
-                            <span className="sa-mod-icon">{mod.icon}</span>
-                            <div className="sa-mod-info">
-                              <span className="sa-mod-label">{mod.label}</span>
-                              {mod.desc && <span className="sa-mod-desc">{mod.desc}</span>}
-                            </div>
-                            <div
-                              className={`sa-switch${createForm.modules.includes(mod.id) ? " sa-switch--on" : ""}`}
-                              onClick={() => toggleModule(mod.id)}>
-                              <div className="sa-switch__thumb"/>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
+                <div style={S.field}>
+                  <label style={S.label}>Plan</label>
+                  <div style={{ display:"flex", gap:8 }}>
+                    {["Starter","Pro","Enterprise"].map(pl => (
+                      <button key={pl} style={{ ...S.btn(form.plan===pl?"primary":"ghost"), flex:1 }}
+                        onClick={() => setForm(p => ({...p, plan:pl}))}>
+                        {pl}
+                      </button>
                     ))}
                   </div>
-
-                  {/* Action */}
-                  <button className="sa-btn sa-btn--primary sa-btn--full" onClick={createTenant}>
-                    Déployer le tenant →
-                  </button>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* DÉTAIL TENANT */}
-          {view === "tenant-detail" && selected && (
-            <TenantDetail
-              tenant={tenants.find(t => t.id === selected.id) || selected}
-              onBack={() => setView("tenants")}
-              onToggleModule={(mod) => toggleTenantModule(selected.id, mod)}
-              onSuspend={() => suspendTenant(selected.id)}
-              onDemo={() => injectDemo(selected.id)}
-              onUpdate={(updates) => {
-                setTenants(p => p.map(t => t.id === selected.id ? {...t, ...updates} : t));
-                toast("Tenant mis à jour");
-              }}
-            />
-          )}
-
-          {/* AUDIT LOG */}
-          {view === "audit" && (
-            <div className="sa-page fadein">
-              <header className="sa-page__header">
-                <div>
-                  <h1 className="sa-page__title">Audit Log</h1>
-                  <p className="sa-page__sub">Journal de toutes les actions sensibles</p>
-                </div>
-              </header>
-              <div className="sa-card">
-                <div className="sa-audit-head">
-                  <span>Action</span><span>Utilisateur</span><span>Tenant</span><span>Date</span>
-                </div>
-                {auditLogs.map((log, i) => (
-                  <div key={i} className="sa-audit-row">
-                    <div className="sa-audit-action">
-                      <span className={`sa-audit-badge sa-audit-badge--${log.type}`}>{log.action}</span>
-                    </div>
-                    <div className="sa-audit-user">{log.user}</div>
-                    <div className="sa-audit-tenant">{log.tenant}</div>
-                    <div className="sa-audit-date">{log.date}</div>
+                <div style={S.field}>
+                  <label style={S.label}>Couleur principale</label>
+                  <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                    <input type="color" value={form.color} style={{ width:42, height:38, border:"1px solid rgba(255,255,255,.1)", borderRadius:8, background:"transparent", cursor:"pointer" }}
+                      onChange={e => setForm(p => ({...p, color:e.target.value}))}/>
+                    <input style={{ ...S.input, width:110 }} value={form.color}
+                      onChange={e => setForm(p => ({...p, color:e.target.value}))}/>
                   </div>
-                ))}
+                </div>
+              </div>
+              <div>
+                <div style={S.card}>
+                  <div style={S.sectionTitle}>Modules</div>
+                  {MODS.map(mod => (
+                    <div key={mod.id} style={S.modRow}>
+                      <span style={{ fontSize:18, width:24 }}>{mod.icon}</span>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13, fontWeight:600 }}>{mod.label}</div>
+                        {mod.desc && <div style={{ fontSize:11, color:"#6B635C" }}>{mod.desc}</div>}
+                      </div>
+                      <div style={S.switchWrap(form.modules.includes(mod.id))}
+                        onClick={() => setForm(p => ({...p, modules:p.modules.includes(mod.id)?p.modules.filter(m=>m!==mod.id):[...p.modules,mod.id]}))}>
+                        <div style={S.switchThumb(form.modules.includes(mod.id))}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button style={{ ...S.btn("primary"), width:"100%", marginTop:8, padding:"14px" }}
+                  onClick={() => {
+                    if (!form.name || !form.slug) { showToast("Nom et slug requis", "error"); return; }
+                    setTenants(p => [...p, { id:Date.now().toString(), ...form, users:0, products:0, revenue:0 }]);
+                    setForm({ name:"", slug:"", color:"#FF8C69", plan:"Pro", status:"trial", modules:["pos","stock","finance"] });
+                    setView("tenants");
+                    showToast(`✓ ${form.name} créé avec succès`);
+                  }}>
+                  Déployer le tenant →
+                </button>
               </div>
             </div>
-          )}
-        </main>
+          </div>
+        )}
 
-        {/* Toasts */}
-        <div className="sa-toasts">
-          {toasts.map(t => (
-            <div key={t.id} className={`sa-toast sa-toast--${t.type || "success"}`}>{t.msg}</div>
-          ))}
-        </div>
-      </div>
-    </>
+        {/* AUDIT */}
+        {view === "audit" && (
+          <div>
+            <div style={S.pageTitle}>Audit Log</div>
+            <div style={S.pageSub}>Journal des actions sensibles</div>
+            <div style={S.card}>
+              <div style={{ display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr 1fr", gap:12, padding:"8px 0", borderBottom:"1px solid rgba(255,255,255,.07)", fontSize:10, fontWeight:800, color:"#6B635C", textTransform:"uppercase", letterSpacing:".08em" }}>
+                <span>Action</span><span>Utilisateur</span><span>Tenant</span><span>Date</span>
+              </div>
+              {[
+                { action:"product.delete", type:"danger", user:"owner@shopincafe.fr", tenant:"Shop In Café", date:"03/05 14:32" },
+                { action:"price.update", type:"warning", user:"owner@shopincafe.fr", tenant:"Shop In Café", date:"03/05 12:18" },
+                { action:"user.create", type:"info", user:"admin@novacaisse.io", tenant:"Shop In Café", date:"02/05 09:45" },
+                { action:"product.delete", type:"danger", user:"owner@techrepair.fr", tenant:"TechRepair Pro", date:"01/05 16:20" },
+              ].map((log,i) => (
+                <div key={i} style={{ display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr 1fr", gap:12, padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,.04)", fontSize:12, alignItems:"center" }}>
+                  <span style={{ padding:"3px 9px", borderRadius:4, fontSize:11, fontWeight:700, fontFamily:"monospace",
+                    background:log.type==="danger"?"rgba(224,82,82,.12)":log.type==="warning"?"rgba(245,158,11,.12)":"rgba(91,158,245,.12)",
+                    color:log.type==="danger"?"#E05252":log.type==="warning"?"#F59E0B":"#5B9EF5" }}>
+                    {log.action}
+                  </span>
+                  <span style={{ color:"#A89F96" }}>{log.user}</span>
+                  <span style={{ color:"#A89F96" }}>{log.tenant}</span>
+                  <span style={{ color:"#6B635C" }}>{log.date}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Toast */}
+      {toast && <div style={S.toastBox(toast.type)}>{toast.msg}</div>}
+    </div>
   );
 }
+
+
 
 // ──────────────────────────────────────────────────────────────────────
 // TenantRow
@@ -1164,7 +1155,109 @@ function BottomNav({ screen, setScreen }) {
   );
 }
 
+
+// ══════════════════════════════════════════════════════════════════════
+// AUTH — Page Login NovaCaisse
+// ══════════════════════════════════════════════════════════════════════
+function LoginPage({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const S = {
+    root: { minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#FAFAF8", fontFamily:"'Plus Jakarta Sans',sans-serif", padding:16 },
+    card: { background:"#fff", borderRadius:20, padding:"48px 40px", width:"100%", maxWidth:420, boxShadow:"0 4px 40px rgba(26,22,18,.08)", border:"1px solid rgba(26,22,18,.06)" },
+    logo: { display:"flex", alignItems:"center", gap:12, marginBottom:32 },
+    logoIcon: { width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontWeight:900, fontSize:20, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+    logoTitle: { fontSize:20, fontWeight:800, color:"#1A1612" },
+    logoSub: { fontSize:12, color:"#9E8E82" },
+    title: { fontSize:24, fontWeight:800, color:"#1A1612", marginBottom:8 },
+    sub: { fontSize:14, color:"#9E8E82", marginBottom:32 },
+    label: { display:"block", fontSize:12, fontWeight:700, color:"#6B635C", textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 },
+    input: { width:"100%", padding:"12px 16px", borderRadius:10, border:"1.5px solid rgba(26,22,18,.1)", background:"#FAFAF8", fontFamily:"inherit", fontSize:15, color:"#1A1612", outline:"none", boxSizing:"border-box", marginBottom:16, display:"block" },
+    btn: { width:"100%", padding:14, borderRadius:10, border:"none", background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontFamily:"inherit", fontSize:15, fontWeight:700, cursor:"pointer", marginTop:8 },
+    error: { background:"rgba(224,82,82,.08)", border:"1px solid rgba(224,82,82,.2)", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#E05252", marginBottom:16 },
+    demo: { marginTop:20, padding:16, background:"#F5F0EB", borderRadius:10, fontSize:12, color:"#6B635C", lineHeight:1.8 },
+  };
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setLoading(true); setError("");
+    await new Promise(r => setTimeout(r, 600));
+    if (email === "admin@novacaisse.io" && password === "admin123") {
+      onLogin({ role:"SUPER_ADMIN", name:"Gilliane Robin", email });
+    } else if (email && password.length >= 4) {
+      onLogin({ role:"ORG_OWNER", name:"Patron", email, tenant:"shop-in-cafe" });
+    } else {
+      setError("Email ou mot de passe incorrect.");
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div style={S.root}>
+      <div style={S.card}>
+        <div style={S.logo}>
+          <div style={S.logoIcon}>N</div>
+          <div>
+            <div style={S.logoTitle}>NovaCaisse</div>
+            <div style={S.logoSub}>Plateforme POS/ERP SaaS</div>
+          </div>
+        </div>
+        <div style={S.title}>Connexion</div>
+        <div style={S.sub}>Accédez à votre espace de gestion</div>
+        {error && <div style={S.error}>{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <label style={S.label}>Email</label>
+          <input style={S.input} type="email" placeholder="votre@email.com"
+            value={email} onChange={e => setEmail(e.target.value)} required autoFocus/>
+          <label style={S.label}>Mot de passe</label>
+          <input style={S.input} type="password" placeholder="••••••••"
+            value={password} onChange={e => setPassword(e.target.value)} required/>
+          <button style={S.btn} type="submit" disabled={loading}>
+            {loading ? "Connexion…" : "Se connecter →"}
+          </button>
+        </form>
+        <div style={S.demo}>
+          <strong>🔑 Démo Super-Admin :</strong> admin@novacaisse.io / admin123<br/>
+          <strong>🏪 Démo Patron :</strong> email + mot de passe (4+ caractères)
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  // ── Auth ──────────────────────────────────────────────────
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem("nc_user")); } catch { return null; }
+  });
+
+  function handleLogin(userData) {
+    sessionStorage.setItem("nc_user", JSON.stringify(userData));
+    setUser(userData);
+  }
+
+  function handleLogout() {
+    sessionStorage.removeItem("nc_user");
+    setUser(null);
+  }
+
+  // ── Route Guards ───────────────────────────────────────────
+  const isSuperAdminPath = window.location.pathname === "/super-admin";
+  if (!user) return <LoginPage onLogin={handleLogin}/>;
+  if (user.role === "SUPER_ADMIN" || isSuperAdminPath) {
+    return (
+      <div style={{ position:"relative" }}>
+        <button onClick={handleLogout} style={{ position:"fixed", top:12, right:12, zIndex:9999, padding:"6px 14px", background:"rgba(224,82,82,.1)", border:"1px solid rgba(224,82,82,.3)", borderRadius:8, color:"#E05252", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+          ⏻ Déconnexion
+        </button>
+        <SuperAdmin/>
+      </div>
+    );
+  }
+
   const [catalogue,    setCatalogue]    = useState(CATALOGUE_INIT);
   const [screen,       setScreen]       = useState(window.location.pathname === "/super-admin" ? "super-admin" : "home");
   const [panier,       setPanier]       = useState([]);
@@ -1252,7 +1345,7 @@ export default function App() {
 
   return (
     <>
-      <style>{CSS}</style>
+      <style>{CSS_SA}</style>
       <div className={`root ${mounted?"mounted":""}`}>
         <Ambient />
         <ToastStack toasts={toasts} />
@@ -3906,1607 +3999,3 @@ function Ambient() {
 // ══════════════════════════════════════════════════════════════════════
 // CSS
 // ══════════════════════════════════════════════════════════════════════
-const CSS_SA = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#F7F3EF;--white:#FFF;
-  --salmon:#FF8C69;--salmon-s:#FFB59A;--salmon-p:#FFF1EC;--salmon-d:#E8704A;
-  --grad:linear-gradient(135deg,#FF8C69,#E8704A);
-  --text:#1A1612;--t2:#5C5047;--t3:#9E8E82;
-  --line:rgba(26,22,18,.09);
-  --green:#4CAF87;--blue:#5B9EF5;--red:#E05252;--warn:#F59E0B;
-  --glass:rgba(255,255,255,.76);--gbdr:rgba(255,255,255,.92);--blur:22px;
-  --sh:0 8px 32px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.04);
-  --shl:0 20px 60px rgba(0,0,0,.10);
-  --r:18px;--rsm:12px;--rxs:8px;
-}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
-.root{min-height:100vh;position:relative;overflow-x:hidden}
-
-/* Ambient */
-.ambient{position:fixed;inset:0;pointer-events:none;z-index:0}
-.blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:0;transition:opacity 1.2s}
-.mounted .blob{opacity:1}
-.b1{width:700px;height:700px;background:radial-gradient(circle,rgba(255,140,105,.16),transparent 70%);top:-200px;right:-100px;animation:bf1 13s ease-in-out infinite}
-.b2{width:500px;height:500px;background:radial-gradient(circle,rgba(91,158,245,.10),transparent 70%);bottom:-100px;left:-150px;animation:bf2 16s ease-in-out infinite}
-.b3{width:400px;height:400px;background:radial-gradient(circle,rgba(76,175,135,.08),transparent 70%);top:45%;left:38%;animation:bf3 19s ease-in-out infinite}
-@keyframes bf1{0%,100%{transform:translate(0,0)}50%{transform:translate(-45px,30px)}}
-@keyframes bf2{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-40px)}}
-@keyframes bf3{0%,100%{transform:translate(0,0)}33%{transform:translate(-25px,18px)}66%{transform:translate(18px,-28px)}}
-
-.fadein{animation:fadeUp .38s ease both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-
-.glass{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--gbdr);box-shadow:var(--sh)}
-
-/* ── TOAST ── */
-.toast-stack{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:10px;align-items:flex-end}
-.toast{padding:13px 18px;border-radius:var(--rsm);min-width:240px;max-width:320px;animation:toastIn .4s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 8px 28px rgba(0,0,0,.14);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-@keyframes toastIn{from{opacity:0;transform:translateX(40px) scale(.96)}to{opacity:1;transform:none}}
-.toast--success{background:rgba(76,175,135,.92);border:1px solid rgba(76,175,135,.5);color:#fff}
-.toast--warning{background:rgba(245,158,11,.92);border:1px solid rgba(245,158,11,.5);color:#fff}
-.toast__title{font-size:13px;font-weight:800;margin-bottom:2px}
-.toast__msg{font-size:12px;opacity:.9}
-
-/* ── PAGE ── */
-.page{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:20px 20px 60px;display:flex;flex-direction:column;gap:16px}
-
-/* ── HOME ── */
-.home-header{border-radius:var(--r);padding:20px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:16px}
-.logo-row{display:flex;align-items:center;gap:14px}
-.logo-glyph{font-size:34px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.logo-name{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:-.01em}
-.logo-date{font-size:12px;color:var(--t3);margin-top:1px}
-.home-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
-.kpi-chip{border-radius:var(--rxs);padding:10px 14px;display:flex;flex-direction:column;gap:2px}
-.kpi-chip__label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
-.kpi-chip__val{font-family:'DM Serif Display',serif;font-size:18px;letter-spacing:-.01em}
-.kpi-chip__val--green{color:var(--green)}
-.kpi-chip__val small{font-family:'Plus Jakarta Sans';font-size:12px;color:var(--t3)}
-
-.profita-bar-wrap{border-radius:var(--r);padding:18px 22px;display:flex;flex-direction:column;gap:8px}
-.profita-bar-header{display:flex;justify-content:space-between;align-items:center}
-.profita-bar-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3)}
-.profita-bar-pct{font-size:13px;font-weight:700}
-.profita-track{height:8px;background:rgba(26,22,18,.07);border-radius:100px;overflow:hidden}
-.profita-fill{height:100%;border-radius:100px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
-.profita-detail{display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--t3)}
-
-.home-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.home-tile{position:relative;border-radius:var(--r);padding:22px 18px 18px;display:flex;flex-direction:column;gap:5px;cursor:pointer;border:none;font-family:inherit;text-align:left;overflow:hidden;transition:transform .22s,box-shadow .22s}
-.home-tile:hover{transform:translateY(-4px);box-shadow:var(--shl)}
-.home-tile__top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
-.home-tile__icon-wrap{position:relative}
-.home-tile__arrow{font-size:18px;transition:transform .2s}
-.home-tile:hover .home-tile__arrow{transform:translateX(4px)}
-.home-tile__label{font-size:13px;font-weight:800;letter-spacing:.06em;color:var(--text)}
-.home-tile__sub{font-size:11px;color:var(--t3)}
-.home-tile__bar{position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 var(--r) var(--r)}
-
-/* ── MODULE HEADER ── */
-.module-header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:var(--r)}
-.back-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:transparent;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:all .18s;flex-shrink:0}
-.back-btn:hover{background:var(--salmon-p);border-color:var(--salmon-s);color:var(--salmon-d)}
-.btn-add{margin-left:auto;display:flex;align-items:center;gap:6px;background:var(--grad);color:#fff;border:none;border-radius:50px;padding:9px 18px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(255,140,105,.35);transition:transform .2s,box-shadow .2s;white-space:nowrap}
-.btn-add:hover{transform:translateY(-2px);box-shadow:0 7px 20px rgba(255,140,105,.45)}
-
-.breadcrumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
-.breadcrumb__item{display:flex;align-items:center;gap:4px}
-.breadcrumb__sep{color:var(--t3);font-size:14px}
-.breadcrumb__btn{background:none;border:none;font-family:inherit;font-size:14px;color:var(--salmon-d);font-weight:600;cursor:pointer;padding:0;transition:opacity .15s}
-.breadcrumb__btn:hover{opacity:.7}
-.breadcrumb__current{font-size:14px;font-weight:800;color:var(--text)}
-
-/* ═══════════════════════════════════════════════════════════════
-   STOCKS — Réapprovisionnement iPad-first
-═══════════════════════════════════════════════════════════════ */
-
-/* Root pleine page */
-.stk-root{position:relative;z-index:1;min-height:100vh;background:var(--bg)}
-.stk-page{max-width:1080px;margin:0 auto;padding:28px 32px 64px;display:flex;flex-direction:column;gap:24px}
-
-/* ── Header ── */
-.stk-header{
-  display:grid;grid-template-columns:1fr auto 1fr;
-  align-items:center;gap:16px;
-  padding:16px 20px;
-  background:rgba(255,255,255,.9);
-  border:1px solid rgba(0,0,0,.07);border-radius:20px;
-  box-shadow:0 2px 8px rgba(0,0,0,.05);
-  backdrop-filter:blur(12px);
-}
-.stk-header__center{text-align:center}
-.stk-header__actions{display:flex;gap:10px;justify-content:flex-end;align-items:center}
-.stk-back{
-  display:inline-flex;align-items:center;gap:7px;
-  padding:9px 16px;
-  background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.08);
-  border-radius:100px;font-family:inherit;font-size:13px;font-weight:500;
-  color:var(--t2);cursor:pointer;width:fit-content;
-  box-shadow:0 1px 4px rgba(0,0,0,.06);transition:all .18s;
-}
-.stk-back:hover{background:var(--salmon-p);border-color:rgba(255,140,105,.3);color:var(--salmon-d)}
-.stk-title{font-family:'DM Serif Display',serif;font-size:26px;letter-spacing:-.02em;color:var(--text);margin-bottom:3px}
-.stk-subtitle{font-size:13px;color:var(--t3)}
-
-/* Boutons header */
-.stk-btn-new{
-  display:inline-flex;align-items:center;gap:8px;
-  background:linear-gradient(135deg,#FF8C69,#E8704A);color:#fff;
-  border:none;border-radius:50px;padding:11px 20px;
-  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
-  box-shadow:0 4px 14px rgba(255,140,105,.38);white-space:nowrap;
-  transition:transform .2s,box-shadow .2s;
-}
-.stk-btn-new:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(255,140,105,.5)}
-
-.stk-btn-apply-all{
-  display:inline-flex;align-items:center;gap:8px;
-  background:linear-gradient(135deg,#4CAF87,#2D9B6F);color:#fff;
-  border:none;border-radius:50px;padding:11px 20px;
-  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
-  box-shadow:0 4px 14px rgba(76,175,135,.38);white-space:nowrap;
-  animation:pulseSalmon 1.8s ease-in-out infinite;
-  transition:transform .2s;
-}
-.stk-btn-apply-all:hover{transform:translateY(-2px)}
-@keyframes pulseSalmon{0%,100%{box-shadow:0 4px 14px rgba(76,175,135,.38)}50%{box-shadow:0 4px 22px rgba(76,175,135,.6)}}
-
-/* ── Niveau 0 — Univers ── */
-.stk-univers-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:18px;
-}
-.stk-univers-card{
-  position:relative;overflow:hidden;
-  background:rgba(255,255,255,.95);
-  border:1px solid rgba(0,0,0,.07);border-radius:24px;
-  padding:32px 28px;
-  display:flex;flex-direction:column;gap:8px;align-items:flex-start;
-  cursor:pointer;font-family:inherit;text-align:left;
-  box-shadow:0 2px 12px rgba(0,0,0,.06),0 8px 28px rgba(0,0,0,.05);
-  opacity:0;animation:fadeUp .4s cubic-bezier(.22,1,.36,1) both;
-  animation-delay:var(--delay,0s);
-  transition:transform .22s,box-shadow .22s,border-color .22s;
-}
-.stk-univers-card:hover{
-  transform:translateY(-5px);
-  box-shadow:0 4px 20px rgba(0,0,0,.08),0 20px 56px rgba(0,0,0,.10);
-  border-color:color-mix(in srgb,var(--uc) 30%,transparent);
-}
-.stk-univers-card__stripe{
-  position:absolute;top:0;left:0;right:0;height:4px;
-  background:var(--ug);border-radius:24px 24px 0 0;
-}
-.stk-univers-card__emoji{font-size:48px;line-height:1;margin-bottom:4px}
-.stk-univers-card__name{
-  font-family:'DM Serif Display',serif;font-size:30px;
-  letter-spacing:-.02em;color:var(--text);
-}
-.stk-univers-card__meta{font-size:13px;color:var(--t3)}
-.stk-univers-card__alert{
-  background:rgba(224,82,82,.1);color:#E05252;
-  font-size:12px;font-weight:700;padding:4px 12px;
-  border-radius:100px;border:1px solid rgba(224,82,82,.2);
-}
-.stk-univers-card__cta{
-  margin-top:8px;font-size:13px;font-weight:700;
-  color:var(--uc);letter-spacing:.01em;
-}
-
-/* ── Niveau 1 — Marques ── */
-.stk-marques-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-  gap:14px;
-}
-.stk-marque-card{
-  position:relative;overflow:hidden;
-  background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:22px;
-  padding:22px 20px 16px;min-height:180px;
-  display:flex;flex-direction:column;gap:6px;align-items:flex-start;
-  cursor:pointer;font-family:inherit;text-align:left;
-  box-shadow:0 2px 8px rgba(0,0,0,.05),0 6px 20px rgba(0,0,0,.05);
-  opacity:0;animation:fadeUp .38s cubic-bezier(.22,1,.36,1) both;
-  animation-delay:var(--delay,0s);
-  transition:transform .22s,box-shadow .22s,border-color .22s;
-}
-.stk-marque-card:hover{
-  transform:translateY(-5px);
-  box-shadow:0 4px 16px rgba(0,0,0,.08),0 16px 40px rgba(0,0,0,.09);
-  border-color:color-mix(in srgb,var(--mc) 30%,transparent);
-}
-.stk-marque-card:active{transform:scale(.97)}
-.stk-marque-card--alert{border-color:rgba(224,82,82,.2) !important}
-.stk-marque-card__color-band{
-  position:absolute;top:0;left:0;right:0;height:4px;
-  background:var(--mc);border-radius:22px 22px 0 0;
-}
-.stk-marque-card__top{display:flex;justify-content:space-between;align-items:flex-start;width:100%;margin-bottom:4px}
-.stk-marque-card__emoji{font-size:32px;line-height:1}
-.stk-marque-card__alert-badge{
-  background:rgba(224,82,82,.1);color:#E05252;
-  font-size:11px;font-weight:800;
-  padding:3px 9px;border-radius:100px;border:1px solid rgba(224,82,82,.2);
-}
-.stk-marque-card__name{
-  font-family:'DM Serif Display',serif;font-size:18px;
-  letter-spacing:-.01em;color:var(--text);line-height:1.2;
-}
-.stk-marque-card__stats{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:auto;padding-top:10px}
-.stk-marque-card__stats span{font-size:12px;color:var(--t3)}
-.stk-marque-card__stock{font-size:14px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif}
-.stk-marque-card__cta{font-size:11px;font-weight:700;color:var(--mc);margin-top:4px}
-.stk-marque-card--ghost{
-  border-style:dashed !important;border-color:rgba(26,22,18,.13) !important;
-  background:rgba(255,255,255,.4) !important;box-shadow:none !important;
-  align-items:center;justify-content:center;gap:8px;
-}
-.stk-marque-card--ghost:hover{border-color:rgba(255,140,105,.4) !important;background:rgba(255,241,236,.5) !important}
-.stk-marque-card__ghost-lbl{font-size:13px;font-weight:600;color:var(--t3)}
-.stk-marque-card--ghost:hover .stk-marque-card__ghost-lbl{color:var(--salmon-d)}
-
-/* ── Niveau 2 — Articles avec saisie quantité ── */
-.stk-articles-list{display:flex;flex-direction:column;gap:10px}
-.stk-empty{
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:14px;padding:60px 24px;text-align:center;
-}
-.stk-empty__title{font-family:'DM Serif Display',serif;font-size:24px;color:var(--text)}
-
-/* Ligne article */
-.stk-art{
-  background:#fff;border:1.5px solid rgba(0,0,0,.07);border-radius:18px;
-  overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.04);
-  transition:border-color .2s,box-shadow .2s;
-}
-.stk-art--low{border-color:rgba(224,82,82,.25)}
-.stk-art--confirmed{border-color:rgba(76,175,135,.4);animation:confirmFlash .6s ease}
-.stk-art--open{border-color:rgba(255,140,105,.4);box-shadow:0 4px 20px rgba(255,140,105,.12)}
-@keyframes confirmFlash{
-  0%{background:#fff}
-  30%{background:rgba(76,175,135,.06)}
-  100%{background:#fff}
-}
-
-/* Grille interne : info | stock actuel | saisie | bouton */
-.stk-art__info,
-.stk-art__stock-current,
-.stk-art__input-zone,
-.stk-art__validate {
-  /* layout inline dans un flex-row */
-}
-/* Le conteneur principal des 4 colonnes */
-.stk-art > .stk-art__info,
-.stk-art > .stk-art__stock-current,
-.stk-art > .stk-art__input-zone,
-.stk-art > .stk-art__validate {
-  /* On les met dans une div implicite via JSX */
-}
-
-/* Flex row wrapper — on l'obtient avec la grille directe sur stk-art */
-.stk-art{
-  display:grid;
-  grid-template-columns:1fr auto auto auto;
-  grid-template-rows:auto;
-  align-items:center;
-  gap:0;
-  /* Le numpad est full-width en 2e ligne */
-}
-
-.stk-art__info{
-  padding:16px 20px;
-  border-right:1px solid rgba(0,0,0,.05);
-}
-.stk-art__name{
-  font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;
-  letter-spacing:-.01em;color:var(--text);margin-bottom:6px;line-height:1.2;
-}
-.stk-art__tags{display:flex;gap:6px;flex-wrap:wrap}
-.stk-art__tag{
-  font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;
-}
-.stk-art__tag--ttc{background:rgba(255,140,105,.1);color:var(--salmon-d)}
-.stk-art__tag--marge{background:rgba(26,22,18,.05);font-weight:700}
-.stk-art__tag--alert{background:rgba(224,82,82,.1);color:#E05252;border:1px solid rgba(224,82,82,.15)}
-
-.stk-art__stock-current{
-  padding:16px 24px;
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  border-right:1px solid rgba(0,0,0,.05);
-  min-width:110px;
-}
-.stk-art__stock-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
-.stk-art__stock-val{
-  font-family:'DM Serif Display',serif;font-size:32px;
-  letter-spacing:-.02em;color:var(--text);line-height:1;
-  transition:all .3s;
-}
-.stk-art__stock-val--low{color:#E05252}
-.stk-art__stock-unite{font-size:11px;color:var(--t3)}
-
-.stk-art__input-zone{
-  padding:16px 20px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;min-width:160px;
-  border-right:1px solid rgba(0,0,0,.05);
-  transition:background .18s;
-}
-.stk-art__input-zone:hover{background:rgba(255,140,105,.04)}
-.stk-art__qty-placeholder{
-  display:flex;align-items:center;gap:8px;
-  color:var(--t3);font-size:13px;font-weight:600;
-}
-.stk-art__qty-filled{
-  display:flex;align-items:center;gap:10px;
-}
-.stk-art__qty-plus{
-  font-family:'DM Serif Display',serif;font-size:28px;
-  color:#FF8C69;letter-spacing:-.02em;
-}
-.stk-art__qty-arrow{font-size:16px;color:var(--t3)}
-.stk-art__qty-new{
-  font-family:'DM Serif Display',serif;font-size:22px;
-  color:#2D9B6F;letter-spacing:-.02em;
-}
-
-.stk-art__validate{
-  margin:12px 16px;
-  padding:14px 20px;
-  background:rgba(26,22,18,.06);
-  border:none;border-radius:12px;
-  font-family:inherit;font-size:13px;font-weight:700;
-  color:var(--t3);cursor:pointer;
-  white-space:nowrap;
-  transition:all .22s;min-width:140px;text-align:center;
-}
-.stk-art__validate--active{
-  background:linear-gradient(135deg,#FF8C69,#E8704A);
-  color:#fff;
-  box-shadow:0 4px 16px rgba(255,140,105,.4);
-  animation:pulseOrange 1.5s ease-in-out infinite;
-}
-@keyframes pulseOrange{
-  0%,100%{box-shadow:0 4px 16px rgba(255,140,105,.4)}
-  50%{box-shadow:0 6px 24px rgba(255,140,105,.65)}
-}
-.stk-art__validate--done{
-  background:linear-gradient(135deg,#4CAF87,#2D9B6F) !important;
-  color:#fff !important;
-  animation:none !important;
-  box-shadow:0 4px 14px rgba(76,175,135,.4) !important;
-}
-.stk-art__validate:disabled:not(.stk-art__validate--done){opacity:.4;cursor:not-allowed}
-
-/* ── Pavé numérique ── */
-.stk-numpad{
-  grid-column:1/-1;
-  background:rgba(247,243,239,.8);
-  border-top:1px solid rgba(0,0,0,.06);
-  padding:20px 24px;
-  display:flex;flex-direction:column;gap:16px;
-  animation:numpadIn .22s cubic-bezier(.2,.8,.2,1);
-  backdrop-filter:blur(8px);
-}
-@keyframes numpadIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-
-.stk-numpad__display{
-  display:flex;align-items:center;justify-content:center;
-  gap:16px;padding:12px 0 8px;
-  border-bottom:1px solid rgba(0,0,0,.07);
-}
-.stk-numpad__before{
-  font-family:'DM Serif Display',serif;font-size:36px;
-  color:var(--t3);letter-spacing:-.02em;
-}
-.stk-numpad__arrow{font-size:20px;color:var(--t3)}
-.stk-numpad__after{
-  font-family:'DM Serif Display',serif;font-size:36px;
-  color:var(--t3);letter-spacing:-.02em;
-  transition:color .2s;
-}
-.stk-numpad__after--active{color:#4CAF87}
-
-.stk-numpad__grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  max-width:380px;margin:0 auto;width:100%;
-}
-.stk-numpad__key{
-  background:#fff;border:1px solid rgba(0,0,0,.08);
-  border-radius:14px;padding:18px;
-  font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;
-  color:var(--text);cursor:pointer;
-  box-shadow:0 2px 6px rgba(0,0,0,.06);
-  transition:all .12s;
-  min-height:68px;display:flex;align-items:center;justify-content:center;
-}
-.stk-numpad__key:hover{background:var(--salmon-p);border-color:rgba(255,140,105,.3);color:var(--salmon-d)}
-.stk-numpad__key:active{transform:scale(.93);box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.stk-numpad__key--del{
-  background:rgba(26,22,18,.04);
-  font-size:20px;color:var(--t2);
-  font-family:'Plus Jakarta Sans',sans-serif;
-}
-.stk-numpad__key--del:hover{background:rgba(224,82,82,.08);border-color:rgba(224,82,82,.2);color:#E05252}
-.stk-numpad__key--ok{
-  background:linear-gradient(135deg,#FF8C69,#E8704A);
-  color:#fff;border-color:transparent;
-  font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:800;
-  box-shadow:0 4px 14px rgba(255,140,105,.4);
-  letter-spacing:.04em;
-}
-.stk-numpad__key--ok:hover{box-shadow:0 6px 20px rgba(255,140,105,.55)}
-.stk-numpad__key--ok:disabled{opacity:.4;cursor:not-allowed;transform:none !important}
-
-/* ── Sheets modals ── */
-.stk-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.28);
-  backdrop-filter:blur(4px);z-index:100;
-  display:flex;align-items:flex-end;justify-content:center;
-  animation:overlayIn .25s ease;
-}
-.stk-sheet{
-  width:100%;max-width:600px;
-  background:rgba(255,255,255,.98);border-radius:24px 24px 0 0;
-  padding:20px 28px 40px;
-  display:flex;flex-direction:column;gap:18px;
-  box-shadow:0 -8px 40px rgba(0,0,0,.12);
-  animation:sheetUp .32s cubic-bezier(.2,.8,.2,1);
-}
-.stk-sheet__handle{width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,.12);margin:0 auto -6px}
-.stk-sheet__hd{display:flex;justify-content:space-between;align-items:center}
-.stk-sheet__title{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:-.01em;color:var(--text)}
-.stk-sheet__title em{font-style:italic;color:var(--salmon-d)}
-.stk-sheet__close{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:transparent;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:all .15s}
-.stk-sheet__close:hover{background:rgba(224,82,82,.08);border-color:#E05252;color:#E05252}
-.stk-sheet__body{display:flex;flex-direction:column;gap:12px}
-.stk-sheet__ft{display:flex;gap:10px;justify-content:flex-end;padding-top:6px;border-top:1px solid var(--line)}
-.stk-field{display:flex;flex-direction:column;gap:6px;flex:1}
-.stk-field__label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
-.stk-field__input{background:rgba(26,22,18,.04);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-family:inherit;font-size:15px;color:var(--text);width:100%;transition:all .18s}
-.stk-field__input:focus{outline:none;border-color:#FF8C69;background:#fff;box-shadow:0 0 0 3px rgba(255,140,105,.1)}
-.stk-field__input--emoji{text-align:center;font-size:22px}
-.stk-field__color{border:1px solid var(--line);border-radius:10px;height:46px;width:100%;cursor:pointer;padding:4px}
-.stk-field-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.stk-btn-cancel{padding:12px 20px;border:1px solid var(--line);border-radius:10px;background:transparent;font-family:inherit;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .18s}
-.stk-btn-cancel:hover{background:rgba(26,22,18,.04)}
-.stk-btn-save{padding:12px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#FF8C69,#E8704A);color:#fff;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(255,140,105,.38);transition:transform .2s,box-shadow .2s}
-.stk-btn-save:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 22px rgba(255,140,105,.45)}
-.stk-btn-save:disabled{opacity:.4;cursor:not-allowed;transform:none !important}
-
-/* ── CAISSE ── */
-.caisse-root{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.caisse-layout{display:grid;grid-template-columns:1fr 370px;gap:14px;padding:14px;flex:1;min-height:0;overflow:hidden}
-.caisse-browse{overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px}
-.caisse-browse::-webkit-scrollbar{width:4px}
-.caisse-browse::-webkit-scrollbar-thumb{background:rgba(26,22,18,.1);border-radius:4px}
-
-.univers-caisse{display:flex;flex-direction:column;gap:14px}
-.univers-caisse-btn{display:flex;align-items:center;gap:16px;border-radius:var(--r);padding:26px;cursor:pointer;font-family:inherit;text-align:left;border:1px solid var(--gbdr);background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));position:relative;overflow:hidden;transition:transform .22s,box-shadow .22s}
-.univers-caisse-btn::before{content:'';position:absolute;inset:0;background:var(--grad);opacity:.07}
-.univers-caisse-btn:hover{transform:translateX(6px);box-shadow:var(--shl)}
-.ucb-label{font-family:'DM Serif Display',serif;font-size:28px;letter-spacing:-.02em;color:var(--text)}
-.ucb-meta{font-size:12px;color:var(--t3)}
-.ucb-arrow{font-size:20px;color:var(--salmon);margin-left:auto;transition:transform .2s}
-.univers-caisse-btn:hover .ucb-arrow{transform:translateX(5px)}
-
-.marques-caisse{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-.marque-caisse-btn{display:flex;flex-direction:column;gap:5px;align-items:flex-start;border-radius:var(--rsm);padding:18px;cursor:pointer;border:1px solid var(--gbdr);background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));font-family:inherit;text-align:left;opacity:0;animation:fadeUp .35s ease both;animation-delay:var(--delay,0s);transition:transform .2s,box-shadow .2s,border-color .2s;min-height:110px}
-.marque-caisse-btn:hover{transform:translateY(-4px);border-color:var(--col,var(--salmon));box-shadow:0 12px 32px rgba(0,0,0,.10)}
-.mcb-icon{font-size:30px;margin-bottom:4px}
-.mcb-label{font-family:'DM Serif Display',serif;font-size:19px;letter-spacing:-.01em;color:var(--text)}
-.mcb-meta{font-size:11px;color:var(--t3)}
-.mcb-alert{margin-top:auto;font-size:11px;font-weight:700;color:var(--warn);background:rgba(245,158,11,.10);padding:3px 8px;border-radius:6px;border:1px solid rgba(245,158,11,.2)}
-.mcb-arrow{font-size:15px;color:var(--salmon);margin-top:auto}
-
-.articles-caisse{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
-.article-caisse-btn{position:relative;display:flex;flex-direction:column;gap:4px;align-items:flex-start;border-radius:var(--rsm);padding:15px 13px 11px;cursor:pointer;border:1px solid var(--gbdr);background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));font-family:inherit;text-align:left;opacity:0;animation:fadeUp .32s ease both;animation-delay:var(--delay,0s);transition:transform .2s,box-shadow .2s,border-color .2s;user-select:none}
-.article-caisse-btn:hover:not(.disabled){transform:translateY(-3px) scale(1.02);border-color:var(--salmon-s);box-shadow:0 10px 26px rgba(255,140,105,.2)}
-.article-caisse-btn.disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.5)}
-.article-caisse-btn.alerte{border-color:rgba(245,158,11,.4) !important}
-.article-caisse-btn.flashing{animation:btnFlash .42s ease !important}
-@keyframes btnFlash{0%{transform:scale(1)}30%{transform:scale(.93);background:rgba(255,140,105,.15)}70%{transform:scale(1.06)}100%{transform:scale(1)}}
-.acb-badge{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 5px;background:var(--grad);color:#fff;border-radius:11px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);box-shadow:0 2px 8px rgba(255,140,105,.4)}
-.acb-alert-dot{position:absolute;top:6px;left:6px;width:8px;height:8px;background:var(--warn);border-radius:50%;box-shadow:0 0 0 3px rgba(245,158,11,.2)}
-.acb-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:2px}
-.acb-price{font-family:'DM Serif Display',serif;font-size:21px;letter-spacing:-.01em;color:var(--text)}
-.acb-price span{font-family:'Plus Jakarta Sans';font-size:13px;color:var(--t3)}
-.acb-footer{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:4px}
-.acb-stock{font-size:10px;font-weight:700}
-.acb-health{font-size:10px;font-weight:700}
-.rupture-overlay{position:absolute;inset:0;background:rgba(255,255,255,.55);border-radius:var(--rsm);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--red);letter-spacing:.05em}
-
-/* ── TICKET ── */
-.caisse-ticket-col{display:flex;flex-direction:column;min-height:0}
-.ticket{flex:1;border-radius:var(--r);padding:18px;display:flex;flex-direction:column;overflow:hidden;background:rgba(255,255,255,.9) !important}
-.ticket-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.ticket-shop{font-family:'DM Serif Display',serif;font-size:16px;color:var(--text)}
-.ticket-time{font-size:12px;color:var(--t3)}
-.dashed-line{border-top:1.5px dashed rgba(26,22,18,.15);margin:10px 0}
-.ticket-lines{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:2px}
-.ticket-lines::-webkit-scrollbar{width:3px}
-.ticket-lines::-webkit-scrollbar-thumb{background:rgba(26,22,18,.10);border-radius:3px}
-.ticket-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--t3);font-size:13px;text-align:center;padding:24px 0}
-.ticket-line{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:7px 4px;border-radius:8px;transition:background .15s}
-.ticket-line:hover{background:rgba(255,140,105,.05)}
-.tl-info{min-width:0}
-.tl-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tl-brand{font-size:10px;color:var(--t3);text-transform:capitalize}
-.tl-qty-ctrl{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700}
-.tq-btn{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:rgba(26,22,18,.04);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:all .15s}
-.tq-btn:hover{background:var(--salmon-p);border-color:var(--salmon-s);color:var(--salmon-d)}
-.tl-total{font-size:13px;font-weight:700;white-space:nowrap}
-.ticket-totaux{display:flex;flex-direction:column;gap:5px}
-.tot-row{display:flex;justify-content:space-between;font-size:12px;color:var(--t2)}
-.tot-row--main{font-size:15px;font-weight:800;color:var(--text)}
-.tot-marge{display:flex;justify-content:space-between;font-size:11px;padding:6px 8px;background:rgba(26,22,18,.03);border-radius:8px;margin-top:2px}
-.tot-marge span:last-child{font-weight:700}
-.btn-encaisser{width:100%;padding:14px;margin-top:12px;background:var(--grad);color:#fff;border:none;border-radius:var(--rsm);font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(255,140,105,.4);transition:transform .2s,box-shadow .2s}
-.btn-encaisser:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 28px rgba(255,140,105,.5)}
-.btn-encaisser:disabled{opacity:.4;cursor:not-allowed;transform:none !important}
-
-/* ══════════════════════════════════════════════════════════════════
-   PAIEMENT SHEET — grille 10 modes
-══════════════════════════════════════════════════════════════════ */
-/* ═══════════════════════════════════════════════════════════════
-   PRODUITS — Sections accordéon iPad-first
-═══════════════════════════════════════════════════════════════ */
-
-.ps-root{display:flex;flex-direction:column;gap:16px;padding-bottom:48px}
-
-/* Toolbar */
-.ps-toolbar{
-  display:flex;align-items:center;gap:12px;
-  flex-wrap:wrap;
-}
-.ps-searchbar{
-  flex:1;min-width:260px;
-  display:flex;align-items:center;gap:10px;
-  border-radius:50px;padding:0 14px 0 16px;height:46px;
-  border-color:rgba(0,0,0,.08) !important;
-  transition:border-color .18s,box-shadow .18s;
-}
-.ps-searchbar:focus-within{
-  border-color:rgba(255,140,105,.5) !important;
-  box-shadow:0 0 0 3px rgba(255,140,105,.1);
-}
-.ps-searchbar__icon{flex-shrink:0;color:rgba(26,22,18,.3);display:flex;align-items:center}
-.ps-searchbar:focus-within .ps-searchbar__icon{color:#FF8C69}
-.ps-searchbar__input{
-  flex:1;border:none;background:transparent;
-  font-family:inherit;font-size:15px;color:#1A1612;outline:none;
-}
-.ps-searchbar__input::placeholder{color:rgba(26,22,18,.3)}
-.ps-searchbar__clear{
-  border:none;background:none;cursor:pointer;
-  width:24px;height:24px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  color:rgba(26,22,18,.4);
-  transition:all .15s;
-}
-.ps-searchbar__clear:hover{background:rgba(224,82,82,.1);color:#E05252}
-
-.ps-toolbar__count{
-  font-size:13px;color:rgba(26,22,18,.4);font-weight:500;
-  white-space:nowrap;
-}
-.ps-toolbar__count span{color:rgba(26,22,18,.25)}
-
-.ps-btn-toggle{
-  padding:9px 16px;
-  background:rgba(255,255,255,.8);border:1px solid rgba(0,0,0,.08);
-  border-radius:100px;font-family:inherit;font-size:12px;font-weight:600;
-  color:rgba(26,22,18,.5);cursor:pointer;white-space:nowrap;
-  transition:all .18s;
-}
-.ps-btn-toggle:hover{border-color:rgba(255,140,105,.4);color:#E8704A;background:rgba(255,241,236,.8)}
-.ps-btn-toggle--col:hover{border-color:rgba(26,22,18,.2);color:#1A1612;background:rgba(26,22,18,.04)}
-
-/* Zéro résultat */
-.ps-zero{
-  display:flex;flex-direction:column;align-items:center;
-  gap:10px;padding:48px 24px;text-align:center;
-  color:rgba(26,22,18,.4);
-}
-.ps-zero span{font-size:40px;opacity:.4}
-.ps-zero p{font-size:15px}
-.ps-zero p strong{color:#1A1612}
-.ps-zero button{
-  padding:10px 20px;background:none;
-  border:1px solid rgba(26,22,18,.15);border-radius:100px;
-  font-family:inherit;font-size:13px;font-weight:600;
-  color:rgba(26,22,18,.5);cursor:pointer;
-  transition:all .15s;margin-top:4px;
-}
-.ps-zero button:hover{border-color:#FF8C69;color:#E8704A;background:rgba(255,241,236,.6)}
-
-/* Sections */
-.ps-sections{display:flex;flex-direction:column;gap:10px}
-
-.ps-sec{
-  background:#fff;
-  border:1px solid rgba(0,0,0,.07);
-  border-radius:16px;
-  overflow:hidden;
-  box-shadow:0 1px 4px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-  opacity:0;animation:fadeUp .38s cubic-bezier(.22,1,.36,1) both;
-  animation-delay:var(--delay,0s);
-  transition:box-shadow .2s,border-color .2s;
-}
-.ps-sec:hover{border-color:color-mix(in srgb,var(--sc) 25%,transparent)}
-.ps-sec--open{border-color:color-mix(in srgb,var(--sc) 18%,transparent)}
-
-/* Header accordéon */
-.ps-sec__head{
-  display:flex;align-items:center;gap:14px;
-  width:100%;padding:0;
-  background:none;border:none;cursor:pointer;
-  font-family:inherit;text-align:left;
-  position:relative;
-  min-height:60px;
-  transition:background .15s;
-}
-.ps-sec__head:hover{background:rgba(26,22,18,.015)}
-.ps-sec--open .ps-sec__head{background:rgba(26,22,18,.012)}
-
-/* Bande colorée gauche */
-.ps-sec__stripe{
-  width:4px;
-  align-self:stretch;
-  background:var(--sc,#FF8C69);
-  flex-shrink:0;
-  border-radius:0;
-  min-height:60px;
-  transition:background .2s;
-}
-
-.ps-sec__identity{
-  display:flex;align-items:center;gap:12px;flex:1;min-width:0;
-  padding:14px 4px;
-}
-.ps-sec__emoji{font-size:22px;line-height:1;flex-shrink:0}
-.ps-sec__labels{display:flex;flex-direction:column;gap:1px;min-width:0}
-.ps-sec__name{
-  font-family:'DM Serif Display',serif;
-  font-size:16px;font-weight:400;letter-spacing:-.01em;
-  color:#1A1612;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.ps-sec__univ{font-size:11px;color:rgba(26,22,18,.35);font-weight:500;text-transform:uppercase;letter-spacing:.06em}
-
-.ps-sec__meta{
-  display:flex;align-items:center;gap:8px;padding-right:4px;
-  flex-shrink:0;
-}
-.ps-sec__alert-badge{
-  background:rgba(224,82,82,.1);color:#E05252;
-  font-size:11px;font-weight:800;
-  padding:3px 9px;border-radius:100px;
-  border:1px solid rgba(224,82,82,.15);
-}
-.ps-sec__art-count{font-size:12px;color:rgba(26,22,18,.4);font-weight:500;white-space:nowrap}
-.ps-sec__price-range{color:rgba(26,22,18,.3)}
-
-.ps-sec__chevron{
-  flex-shrink:0;color:rgba(26,22,18,.3);
-  margin-right:16px;
-}
-
-/* Articles */
-.ps-articles{
-  border-top:1px solid rgba(0,0,0,.05);
-  animation:psArticlesIn .2s ease both;
-}
-@keyframes psArticlesIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-
-/* Header colonnes */
-.ps-col-head{
-  display:grid;
-  grid-template-columns:1fr 120px 110px 36px;
-  gap:0;
-  padding:8px 16px 8px 20px;
-  background:rgba(26,22,18,.025);
-  border-bottom:1px solid rgba(0,0,0,.05);
-}
-.ps-col-head span{
-  font-size:10px;font-weight:800;text-transform:uppercase;
-  letter-spacing:.1em;color:rgba(26,22,18,.35);
-}
-.ps-col-head__stock,.ps-col-head__price{text-align:right}
-
-/* Ligne article */
-.ps-row{
-  display:grid;
-  grid-template-columns:1fr 120px 110px 36px;
-  gap:0;
-  padding:0 16px 0 20px;
-  min-height:48px;
-  align-items:center;
-  border-bottom:1px solid rgba(0,0,0,.04);
-  transition:background .12s;
-}
-.ps-row:last-child{border-bottom:none}
-.ps-row:hover{background:rgba(255,140,105,.03)}
-.ps-row--alt{background:rgba(26,22,18,.015)}
-.ps-row--alt:hover{background:rgba(255,140,105,.04)}
-.ps-row--low{
-  background:rgba(224,82,82,.025);
-  border-left:3px solid rgba(224,82,82,.35);
-  padding-left:17px;
-}
-.ps-row--empty{padding:16px 20px;color:rgba(26,22,18,.3);font-size:13px;font-style:italic;display:block}
-
-/* Colonne Nom */
-.ps-row__name{
-  display:flex;align-items:center;gap:8px;
-  padding:12px 12px 12px 0;min-width:0;
-}
-.ps-row__name-text{
-  font-size:14px;font-weight:500;color:#1A1612;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  cursor:pointer;
-  transition:color .15s;
-}
-.ps-row__name-text:hover{color:#FF8C69;text-decoration:underline dotted}
-.ps-row__low-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:#E05252;flex-shrink:0;
-  box-shadow:0 0 0 3px rgba(224,82,82,.15);
-}
-
-/* Colonne Stock */
-.ps-row__stock{
-  display:flex;flex-direction:column;align-items:flex-end;
-  padding:10px 8px;gap:1px;
-}
-.ps-row__stock-val{
-  font-family:'DM Serif Display',serif;
-  font-size:17px;letter-spacing:-.01em;color:#1A1612;line-height:1;
-}
-.ps-row__stock-val--low{color:#E05252}
-.ps-row__low-lbl{
-  font-size:9px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.06em;color:#E05252;
-}
-
-/* Colonne Prix */
-.ps-row__price{
-  display:flex;align-items:center;justify-content:flex-end;
-  padding:10px 8px;
-}
-.ps-row__price-val{
-  font-family:'DM Serif Display',serif;
-  font-size:17px;letter-spacing:-.01em;color:#1A1612;
-  cursor:pointer;transition:color .15s;
-}
-.ps-row__price-val:hover{color:#FF8C69;text-decoration:underline dotted}
-
-/* Colonne Actions */
-.ps-row__actions{display:flex;align-items:center;justify-content:center}
-.ps-row__del{
-  width:28px;height:28px;border-radius:7px;
-  border:1px solid transparent;background:transparent;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:rgba(26,22,18,.25);
-  transition:all .15s;
-}
-.ps-row__del:hover{background:rgba(224,82,82,.08);border-color:rgba(224,82,82,.2);color:#E05252}
-
-/* Édition inline */
-.ps-inline{
-  border:1.5px solid #FF8C69;border-radius:6px;
-  background:#fff;padding:4px 8px;
-  font-family:inherit;font-size:14px;color:#1A1612;
-  outline:none;width:100%;
-  box-shadow:0 0 0 3px rgba(255,140,105,.1);
-}
-.ps-inline--num{text-align:right;width:100px}
-
-/* Highlight recherche */
-.ps-mark{
-  background:rgba(255,140,105,.2);color:#E8704A;
-  border-radius:3px;padding:0 1px;
-  font-weight:700;font-style:normal;
-}
-
-/* Hint bas de page */
-.ps-hint{
-  font-size:12px;color:rgba(26,22,18,.3);
-  font-style:italic;text-align:center;padding:0 4px;margin-top:4px;
-}
-
-
-/* ── HOME TILES 5 colonnes ── */
-.home-tiles--5{grid-template-columns:repeat(5,1fr)}
-.home-tile--highlight{
-  background:linear-gradient(135deg,rgba(232,112,74,.08),rgba(255,140,105,.05)) !important;
-  border-color:rgba(232,112,74,.25) !important;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   MES DONNÉES — Page hub + 4 tuiles + vues détail
-══════════════════════════════════════════════════════════════════ */
-
-/* Page hub */
-.gd-page{
-  position:relative;z-index:1;
-  min-height:100vh;
-  background:var(--bg);
-  padding:32px 40px 64px;
-  display:flex;flex-direction:column;gap:28px;
-  max-width:100%;
-}
-
-/* Bouton retour discret */
-.gd-back-btn{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:9px 16px;
-  background:rgba(255,255,255,.9);
-  border:1px solid rgba(0,0,0,.08);border-radius:100px;
-  font-family:inherit;font-size:13px;font-weight:500;
-  color:var(--t2);cursor:pointer;
-  box-shadow:0 1px 4px rgba(0,0,0,.06);
-  transition:all .18s;align-self:flex-start;
-  backdrop-filter:blur(8px);
-}
-.gd-back-btn:hover{
-  background:var(--salmon-p);
-  border-color:rgba(255,140,105,.3);
-  color:var(--salmon-d);
-}
-
-/* Titre hero */
-.gd-hero{text-align:center;padding:8px 0 4px}
-.gd-hero__title{
-  font-family:'DM Serif Display',serif;
-  font-size:clamp(32px,4vw,48px);
-  font-weight:400;letter-spacing:-.02em;color:var(--text);
-  margin-bottom:8px;
-}
-.gd-hero__sub{font-size:14px;color:var(--t3);font-weight:400}
-
-/* ── Grille 2×2 ── */
-.gd-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:18px;
-  max-width:900px;
-  margin:0 auto;
-  width:100%;
-}
-
-/* ── Tuile ── */
-.gd-card{
-  position:relative;overflow:hidden;
-  background:rgba(255,255,255,.95);
-  border:1px solid rgba(0,0,0,.07);
-  border-radius:30px;
-  padding:0;
-  cursor:pointer;font-family:inherit;text-align:left;
-  display:flex;flex-direction:column;
-  box-shadow:0 2px 12px rgba(0,0,0,.06), 0 8px 32px rgba(0,0,0,.05);
-  min-height:300px;
-  opacity:0;
-  animation:gdCardIn .5s cubic-bezier(.22,1,.36,1) both;
-  animation-delay:var(--delay,0s);
-  transition:transform .22s,box-shadow .22s,border-color .22s;
-}
-.gd-card:hover{
-  transform:translateY(-5px) scale(1.005);
-  box-shadow:0 4px 20px rgba(0,0,0,.08), 0 20px 60px rgba(0,0,0,.10);
-  border-color:color-mix(in srgb,var(--c) 30%,transparent);
-}
-.gd-card:active{transform:scale(.98);box-shadow:0 2px 8px rgba(0,0,0,.08)}
-@keyframes gdCardIn{
-  from{opacity:0;transform:translateY(24px) scale(.97)}
-  to{opacity:1;transform:translateY(0) scale(1)}
-}
-
-/* Ligne icône + badge */
-.gd-card__icon-row{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:22px 22px 0;
-}
-.gd-card__icon-wrap{
-  width:48px;height:48px;border-radius:14px;
-  background:var(--cb);
-  display:flex;align-items:center;justify-content:center;
-  transition:transform .2s;
-}
-.gd-card:hover .gd-card__icon-wrap{transform:scale(1.08)}
-.gd-card__badge{
-  font-size:12px;font-weight:700;
-  background:rgba(26,22,18,.07);color:var(--t2);
-  padding:4px 11px;border-radius:100px;
-  font-family:'Plus Jakarta Sans',sans-serif;
-}
-.gd-card__badge--blue{background:rgba(91,158,245,.12);color:#2979D9}
-.gd-card__badge--green{background:rgba(76,175,135,.12);color:#2D9B6F}
-.gd-card__badge--orange{background:rgba(232,112,74,.12);color:#E8704A}
-
-/* Titre */
-.gd-card__title{
-  font-family:'DM Serif Display',serif;
-  font-size:22px;font-weight:400;letter-spacing:-.01em;
-  color:var(--text);padding:16px 22px 2px;
-}
-.gd-card__sub{font-size:12px;color:var(--t3);padding:0 22px 12px;font-weight:500}
-
-/* Preview générique */
-.gd-card__preview{
-  flex:1;padding:4px 22px 16px;
-  display:flex;flex-direction:column;gap:6px;
-  overflow:hidden;
-}
-
-/* Preview produits */
-.gd-prev-produit{
-  display:grid;grid-template-columns:1fr 56px 46px;
-  align-items:center;gap:8px;
-}
-.gd-prev-produit__name{font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gd-prev-produit__bar{height:3px;background:rgba(26,22,18,.07);border-radius:3px;overflow:hidden}
-.gd-prev-produit__price{font-size:11px;font-weight:700;color:var(--text);text-align:right}
-.gd-prev-more{font-size:10px;color:var(--t3);font-style:italic;padding-top:2px}
-
-/* Preview rubriques */
-.gd-prev-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
-.gd-prev-tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px}
-.gd-prev-tag-add{
-  font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;
-  background:transparent;border:1px dashed rgba(26,22,18,.15);color:var(--t3);
-}
-.gd-prev-univers{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(26,22,18,.06)}
-.gd-prev-univers:last-child{border-bottom:none}
-.gd-prev-univers__emoji{font-size:14px}
-.gd-prev-univers__label{flex:1;font-size:12px;font-weight:600;color:var(--text)}
-.gd-prev-univers__count{
-  font-size:11px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;
-  background:rgba(26,22,18,.07);color:var(--t2);
-  padding:2px 8px;border-radius:100px;
-}
-
-/* Preview switches */
-.gd-card__preview--switches{gap:5px}
-.gd-sw-row{
-  display:flex;align-items:center;gap:8px;
-  padding:4px 0;border-radius:8px;
-}
-.gd-sw-icon{font-size:14px;flex-shrink:0}
-.gd-sw-label{flex:1;font-size:11px;color:var(--t2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gd-sw-comm{font-size:9px;color:rgba(224,82,82,.8);font-weight:700;flex-shrink:0}
-/* Mini switch preview */
-.gd-msw{
-  width:28px;height:16px;border-radius:8px;
-  background:rgba(26,22,18,.12);
-  padding:2px;display:flex;align-items:center;
-  flex-shrink:0;
-  transition:background .2s;
-  cursor:pointer;
-}
-.gd-msw--on{background:var(--sc,#4CAF87)}
-.gd-msw__thumb{
-  width:12px;height:12px;border-radius:50%;background:#fff;
-  box-shadow:0 1px 3px rgba(0,0,0,.2);
-  transition:transform .2s cubic-bezier(.2,.8,.2,1);
-}
-.gd-msw--on .gd-msw__thumb{transform:translateX(12px)}
-
-/* Preview TVA */
-.gd-prev-tva{display:flex;align-items:center;gap:9px;padding:4px 0;border-bottom:1px solid rgba(26,22,18,.06)}
-.gd-prev-tva:last-of-type{border-bottom:none}
-.gd-prev-tva__dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.gd-prev-tva__tag{flex:1;font-size:11px;color:var(--t2);font-weight:500}
-.gd-prev-tva__rate{font-size:13px;font-weight:800}
-.gd-prev-legal{
-  margin-top:6px;padding:7px 10px;border-radius:8px;
-  background:rgba(26,22,18,.04);font-size:10px;color:var(--t3);
-}
-
-/* Flèche du bas */
-.gd-card__arrow{
-  padding:12px 22px 18px;
-  font-size:12px;font-weight:700;
-  color:var(--c);
-  transition:gap .2s;
-}
-
-/* ── Vues détail ── */
-.md-section{display:flex;flex-direction:column;gap:12px}
-
-/* Search */
-.md-searchbar{display:flex;align-items:center;gap:10px;border-radius:50px;padding:0 14px 0 16px;height:44px;border-color:var(--line) !important;transition:border-color .2s}
-.md-searchbar:focus-within{border-color:var(--salmon-s) !important;box-shadow:0 0 0 3px rgba(255,140,105,.1)}
-.md-searchbar__icon{flex-shrink:0;color:var(--t3);display:flex;align-items:center}
-.md-searchbar__input{flex:1;border:none;background:transparent;font-family:inherit;font-size:14px;color:var(--text);outline:none}
-.md-searchbar__input::placeholder{color:var(--t3)}
-.md-searchbar__clear{border:none;background:none;font-size:12px;color:var(--t3);cursor:pointer;padding:4px;transition:color .15s}
-.md-searchbar__clear:hover{color:var(--red)}
-
-/* Tableau */
-.md-table-wrap{border-radius:var(--r);overflow:hidden;border-color:var(--line) !important}
-.md-table-head{display:grid;grid-template-columns:2.5fr 1.6fr 1fr 1fr 1fr 0.8fr 1.2fr 36px;gap:0;padding:10px 16px;background:rgba(26,22,18,.04);border-bottom:1px solid var(--line)}
-.md-th{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
-.md-th--r{text-align:right}
-.md-table-body{display:flex;flex-direction:column}
-.md-empty{padding:28px;text-align:center;color:var(--t3);font-size:13px}
-.md-row{display:grid;grid-template-columns:2.5fr 1.6fr 1fr 1fr 1fr 0.8fr 1.2fr 36px;gap:0;padding:9px 16px;align-items:center;border-bottom:1px solid var(--line);transition:background .15s}
-.md-row:last-child{border-bottom:none}
-.md-row--alt{background:rgba(26,22,18,.018)}
-.md-row:hover{background:rgba(255,140,105,.04)}
-.md-td{display:flex;align-items:center;padding:0 4px;min-width:0;font-size:13px;color:var(--t2)}
-.md-td--r{justify-content:flex-end}
-.md-td--marge{flex-direction:column;align-items:flex-end;gap:3px;justify-content:center}
-.md-td__text{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.md-td__click{cursor:pointer}
-.md-td__click:hover{color:var(--salmon-d);text-decoration:underline dotted}
-.md-num{font-size:13px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums;cursor:pointer}
-.md-num:hover{color:var(--salmon-d);text-decoration:underline dotted}
-.md-inline-input{border:1.5px solid var(--salmon);border-radius:6px;background:#fff;padding:4px 8px;font-family:inherit;font-size:13px;color:var(--text);outline:none;width:100%}
-.md-inline-input--sm{text-align:right;width:80px}
-.md-inline-input--marque{width:140px}
-.md-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-right:6px}
-.md-dot--bar{background:var(--salmon)}
-.md-dot--boutique{background:var(--blue)}
-.md-stock{font-size:12px;font-weight:700;color:var(--text)}
-.md-stock--low{color:var(--red)}
-.md-mbar{width:52px;height:4px;background:rgba(26,22,18,.08);border-radius:100px;overflow:hidden}
-.md-mbar__fill{height:100%;border-radius:100px;transition:width .4s}
-.md-del{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);background:transparent;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.md-del:hover{background:rgba(224,82,82,.1);border-color:var(--red)}
-.md-hint{font-size:12px;color:var(--t3);font-style:italic;padding:0 2px}
-
-/* ═══════════════════════════════════════════════════════════════
-   RUBRIQUES — Niveau 1 (grille) + Niveau 2 (fiches articles)
-═══════════════════════════════════════════════════════════════ */
-
-/* ── Niveau 1 : page grille ── */
-.rub1-root{display:flex;flex-direction:column;gap:24px;padding:4px 0 32px}
-
-.rub1-toolbar{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:0 2px;
-}
-.rub1-toolbar__meta{}
-.rub1-toolbar__count{font-size:14px;color:var(--t3);font-weight:500}
-.rub1-toolbar__sep{margin:0 8px;color:var(--t3)}
-.rub1-btn-add{
-  display:inline-flex;align-items:center;gap:8px;
-  background:linear-gradient(135deg,#FF8C69,#E8704A);
-  color:#fff;border:none;border-radius:50px;
-  padding:12px 22px;
-  font-family:inherit;font-size:14px;font-weight:700;
-  cursor:pointer;
-  box-shadow:0 4px 16px rgba(255,140,105,.38);
-  transition:transform .2s,box-shadow .2s;
-}
-.rub1-btn-add:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,140,105,.5)}
-.rub1-btn-add:active{transform:scale(.97)}
-
-/* Bloc par univers */
-.rub1-univers{display:flex;flex-direction:column;gap:14px}
-.rub1-univers__label{
-  display:flex;align-items:center;gap:10px;
-  padding-bottom:8px;border-bottom:1px solid var(--line);
-}
-.rub1-univers__emoji{font-size:20px}
-.rub1-univers__name{font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);letter-spacing:-.01em}
-.rub1-univers__ct{margin-left:auto;font-size:12px;color:var(--t3)}
-
-/* Grille de tuiles */
-.rub1-tiles{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-  gap:14px;
-}
-
-/* Tuile */
-.rub1-tile{
-  position:relative;overflow:hidden;
-  background:rgba(255,255,255,.95);
-  border:1px solid rgba(0,0,0,.07);
-  border-radius:24px;
-  padding:22px 20px 16px;
-  min-height:180px;
-  display:flex;flex-direction:column;gap:6px;align-items:flex-start;
-  cursor:pointer;font-family:inherit;text-align:left;
-  box-shadow:0 2px 8px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.05);
-  opacity:0;animation:fadeUp .4s cubic-bezier(.22,1,.36,1) both;
-  animation-delay:var(--delay,0s);
-  transition:transform .22s,box-shadow .22s,border-color .22s;
-}
-.rub1-tile:hover{
-  transform:translateY(-5px) scale(1.01);
-  box-shadow:0 4px 16px rgba(0,0,0,.08),0 20px 48px rgba(0,0,0,.10);
-  border-color:color-mix(in srgb,var(--tc) 35%,transparent);
-}
-.rub1-tile:active{transform:scale(.97)}
-
-/* Fond coloré en overlay */
-.rub1-tile__bg{
-  position:absolute;inset:0;
-  background:var(--tc);
-  opacity:.06;
-  border-radius:inherit;
-  pointer-events:none;
-}
-
-/* Top : emoji + badge alerte */
-.rub1-tile__top{
-  display:flex;justify-content:space-between;align-items:flex-start;
-  width:100%;margin-bottom:4px;
-}
-.rub1-tile__emoji{
-  font-size:32px;line-height:1;
-  filter:drop-shadow(0 2px 4px rgba(0,0,0,.12));
-}
-.rub1-tile__alert{
-  font-size:15px;
-  background:rgba(224,82,82,.1);
-  color:#E05252;
-  border-radius:100px;
-  padding:3px 8px;
-  font-weight:700;
-}
-.rub1-tile__name{
-  font-family:'DM Serif Display',serif;
-  font-size:17px;font-weight:400;letter-spacing:-.01em;
-  color:var(--text);line-height:1.2;
-  width:100%;
-}
-.rub1-tile__stats{
-  display:flex;flex-direction:column;gap:2px;
-  width:100%;margin-top:2px;
-}
-.rub1-tile__art-count{font-size:12px;color:var(--t3);font-weight:500}
-.rub1-tile__stock-count{font-size:13px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif}
-
-/* Mini barres stock */
-.rub1-tile__bars{
-  display:flex;gap:3px;width:100%;margin-top:auto;
-  padding-top:10px;
-}
-.rub1-tile__bar-seg{
-  flex:1;height:3px;border-radius:100px;
-  transition:opacity .3s;
-}
-
-.rub1-tile__cta{
-  font-size:11px;font-weight:700;
-  color:var(--tc);
-  margin-top:4px;letter-spacing:.01em;
-}
-
-/* Tuile fantôme */
-.rub1-tile--ghost{
-  border-style:dashed !important;
-  border-color:rgba(26,22,18,.13) !important;
-  background:rgba(255,255,255,.4) !important;
-  box-shadow:none !important;
-  align-items:center;justify-content:center;gap:8px;
-  min-height:180px;
-}
-.rub1-tile--ghost:hover{border-color:rgba(255,140,105,.4) !important;background:rgba(255,241,236,.5) !important}
-.rub1-tile__ghost-lbl{font-size:13px;font-weight:600;color:var(--t3)}
-.rub1-tile--ghost:hover .rub1-tile__ghost-lbl{color:var(--salmon-d)}
-
-/* ── Niveau 2 : articles d'une rubrique ── */
-.rub2-root{display:flex;flex-direction:column;gap:20px;padding:4px 0 32px}
-
-.rub2-header{
-  display:flex;align-items:center;gap:16px;
-  padding:16px 20px;
-  background:rgba(255,255,255,.9);
-  border:1px solid rgba(0,0,0,.07);
-  border-radius:20px;
-  box-shadow:0 2px 8px rgba(0,0,0,.05);
-  backdrop-filter:blur(12px);
-}
-
-.rub2-back{
-  display:inline-flex;align-items:center;gap:7px;
-  padding:9px 16px;
-  background:rgba(255,255,255,.9);
-  border:1px solid rgba(0,0,0,.08);
-  border-radius:100px;
-  font-family:inherit;font-size:13px;font-weight:500;
-  color:var(--t2);cursor:pointer;
-  box-shadow:0 1px 4px rgba(0,0,0,.06);
-  transition:all .18s;white-space:nowrap;flex-shrink:0;
-}
-.rub2-back:hover{background:rgba(255,241,236,.9);border-color:rgba(255,140,105,.3);color:var(--salmon-d)}
-
-.rub2-identity{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
-.rub2-emoji{font-size:36px;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.1))}
-.rub2-name{
-  font-family:'DM Serif Display',serif;
-  font-size:26px;font-weight:400;letter-spacing:-.02em;
-  color:var(--text);margin-bottom:3px;
-}
-.rub2-meta{font-size:13px;color:var(--t3)}
-.rub2-meta__sep{margin:0 6px;opacity:.5}
-.rub2-meta__count{font-weight:600;color:var(--t2)}
-.rub2-meta__stock{font-weight:700;color:var(--green)}
-.rub2-meta__stock--alert{color:#E05252}
-
-.rub2-btn-add{
-  display:inline-flex;align-items:center;gap:8px;
-  background:linear-gradient(135deg,#FF8C69,#E8704A);
-  color:#fff;border:none;border-radius:50px;
-  padding:12px 20px;
-  font-family:inherit;font-size:13px;font-weight:700;
-  cursor:pointer;white-space:nowrap;flex-shrink:0;
-  box-shadow:0 4px 14px rgba(255,140,105,.38);
-  transition:transform .2s,box-shadow .2s;
-}
-.rub2-btn-add:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(255,140,105,.5)}
-.rub2-btn-add:active{transform:scale(.97)}
-
-/* Corps des articles */
-.rub2-body{flex:1}
-.rub2-empty{
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:12px;
-  padding:60px 24px;text-align:center;
-}
-.rub2-empty__icon{font-size:52px;opacity:.35}
-.rub2-empty__title{font-family:'DM Serif Display',serif;font-size:24px;color:var(--text)}
-.rub2-empty__sub{font-size:14px;color:var(--t3);max-width:360px}
-
-/* Grille de fiches */
-.rub2-articles{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-  gap:14px;
-}
-
-/* Fiche article */
-.rub2-card{
-  position:relative;overflow:hidden;
-  background:#fff;
-  border:1px solid rgba(0,0,0,.07);
-  border-radius:20px;
-  box-shadow:0 2px 8px rgba(0,0,0,.04),0 4px 20px rgba(0,0,0,.05);
-  display:flex;flex-direction:column;
-  transition:box-shadow .2s,transform .2s,border-color .2s;
-  animation:fadeUp .38s ease both;
-}
-.rub2-card:hover{
-  box-shadow:0 4px 16px rgba(0,0,0,.07),0 12px 36px rgba(0,0,0,.09);
-  transform:translateY(-3px);
-}
-.rub2-card--low{border-color:rgba(224,82,82,.25)}
-
-/* Trait de marge en haut */
-.rub2-card__marge-stripe{
-  height:4px;
-  border-radius:20px 20px 0 0;
-  transition:width .5s cubic-bezier(.2,.8,.2,1);
-  background:#FF8C69;
-  min-width:8px;
-}
-
-/* Corps de la fiche */
-.rub2-card__body{
-  padding:18px 20px 16px;
-  display:flex;flex-direction:column;gap:10px;
-  flex:1;
-}
-.rub2-card__name{
-  font-family:'DM Serif Display',serif;
-  font-size:18px;font-weight:400;letter-spacing:-.01em;
-  color:var(--text);line-height:1.2;
-}
-
-/* Prix */
-.rub2-card__prices{
-  display:flex;align-items:baseline;gap:8px;
-}
-.rub2-card__ttc{
-  font-family:'DM Serif Display',serif;
-  font-size:28px;font-weight:400;letter-spacing:-.02em;
-  color:var(--text);line-height:1;
-}
-.rub2-card__ttc-lbl{
-  font-size:11px;font-weight:700;color:var(--t3);
-  text-transform:uppercase;letter-spacing:.06em;
-}
-.rub2-card__ht{font-size:13px;color:var(--t3);margin-left:2px}
-
-/* Stock */
-.rub2-card__stock{
-  display:flex;align-items:center;gap:8px;
-}
-.rub2-card__stock-dot{
-  width:8px;height:8px;border-radius:50%;
-  flex-shrink:0;
-}
-.rub2-card__stock-val{
-  font-size:15px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;
-  color:var(--text);
-}
-.rub2-card__stock-lbl{
-  font-size:12px;color:var(--t3);
-}
-.rub2-card__stock--low .rub2-card__stock-val{color:#E05252}
-.rub2-card__stock--low .rub2-card__stock-lbl{color:#E05252}
-
-/* Footer fiche */
-.rub2-card__footer{
-  display:flex;align-items:center;
-  padding-top:10px;
-  border-top:1px solid rgba(0,0,0,.06);
-  font-size:12px;
-}
-.rub2-card__cout{color:var(--t3)}
-.rub2-card__marge-lbl{
-  font-size:12px;font-weight:700;
-  margin-left:6px;
-}
-.rub2-card__del{
-  margin-left:auto;
-  width:28px;height:28px;
-  border-radius:8px;border:1px solid rgba(0,0,0,.07);
-  background:transparent;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--t3);transition:all .15s;
-}
-.rub2-card__del:hover{background:rgba(224,82,82,.08);border-color:#E05252;color:#E05252}
-
-/* Carte + ajouter */
-.rub2-card-add{
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:10px;
-  background:transparent;
-  border:2px dashed rgba(255,140,105,.3);
-  border-radius:20px;padding:28px;
-  cursor:pointer;font-family:inherit;
-  transition:all .2s;min-height:160px;
-}
-.rub2-card-add:hover{
-  background:rgba(255,241,236,.5);
-  border-color:rgba(255,140,105,.6);
-}
-.rub2-card-add span{font-size:13px;font-weight:700;color:var(--salmon-d)}
-
-/* ── Sheet modals (partagés) ── */
-.rub-sheet-overlay{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.28);
-  backdrop-filter:blur(4px);
-  z-index:100;
-  display:flex;align-items:flex-end;justify-content:center;
-  animation:overlayIn .25s ease;
-}
-@keyframes overlayIn{from{opacity:0}to{opacity:1}}
-
-.rub-sheet{
-  width:100%;max-width:640px;
-  background:rgba(255,255,255,.98);
-  border-radius:24px 24px 0 0;
-  padding:20px 28px 40px;
-  display:flex;flex-direction:column;gap:18px;
-  box-shadow:0 -8px 40px rgba(0,0,0,.12);
-  animation:sheetUp .32s cubic-bezier(.2,.8,.2,1) both;
-}
-@keyframes sheetUp{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
-.rub-sheet--sm{max-width:480px}
-
-.rub-sheet__handle{
-  width:40px;height:4px;border-radius:2px;
-  background:rgba(0,0,0,.12);margin:0 auto -6px;
-}
-.rub-sheet__header{display:flex;justify-content:space-between;align-items:center}
-.rub-sheet__title{
-  font-family:'DM Serif Display',serif;
-  font-size:22px;letter-spacing:-.01em;color:var(--text);
-}
-.rub-sheet__title em{font-style:italic;color:var(--salmon-d)}
-.rub-sheet__close{
-  width:32px;height:32px;border-radius:8px;
-  border:1px solid var(--line);background:transparent;
-  font-size:14px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--t2);transition:all .15s;
-}
-.rub-sheet__close:hover{background:rgba(224,82,82,.08);border-color:#E05252;color:#E05252}
-.rub-sheet__body{display:flex;flex-direction:column;gap:12px}
-
-/* Champs */
-.rub-field{display:flex;flex-direction:column;gap:6px;flex:1}
-.rub-field__label{
-  font-size:11px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.1em;color:var(--t3);
-}
-.rub-field__input{
-  background:rgba(26,22,18,.04);
-  border:1px solid var(--line);
-  border-radius:10px;padding:12px 14px;
-  font-family:inherit;font-size:15px;color:var(--text);
-  width:100%;transition:all .18s;
-}
-.rub-field__input:focus{
-  outline:none;border-color:#FF8C69;
-  background:#fff;box-shadow:0 0 0 3px rgba(255,140,105,.1);
-}
-.rub-field__input--emoji{text-align:center;font-size:22px}
-.rub-field-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.rub-field-row:has(.rub-field:last-child:nth-child(2)){grid-template-columns:1fr 1fr}
-
-.rub-sheet__marge-preview{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:10px 14px;border-radius:10px;border:1px solid;
-  background:rgba(26,22,18,.02);font-size:13px;color:var(--t2);
-}
-.rub-sheet__marge-preview strong{font-weight:700;font-family:'Plus Jakarta Sans',sans-serif}
-
-.rub-sheet__footer{
-  display:flex;gap:10px;justify-content:flex-end;
-  padding-top:6px;border-top:1px solid var(--line);
-}
-.rub-btn-cancel{
-  padding:12px 20px;border:1px solid var(--line);border-radius:10px;
-  background:transparent;font-family:inherit;font-size:14px;
-  font-weight:600;color:var(--t2);cursor:pointer;transition:all .18s;
-}
-.rub-btn-cancel:hover{background:rgba(26,22,18,.04)}
-.rub-btn-save{
-  padding:12px 24px;border:none;border-radius:10px;
-  background:linear-gradient(135deg,#FF8C69,#E8704A);
-  color:#fff;font-family:inherit;font-size:14px;
-  font-weight:800;cursor:pointer;
-  box-shadow:0 4px 14px rgba(255,140,105,.38);
-  transition:transform .2s,box-shadow .2s;
-}
-.rub-btn-save:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 22px rgba(255,140,105,.45)}
-.rub-btn-save:disabled{opacity:.4;cursor:not-allowed;transform:none !important}
-
-@media(max-width:820px){
-  .caisse-layout{grid-template-columns:1fr;grid-template-rows:1fr 280px}
-  .home-tiles{grid-template-columns:1fr 1fr}
-  .fin-kpis{grid-template-columns:1fr 1fr;gap:12px}
-  .fin-kpi--sep{display:none}
-  .univers-grid{grid-template-columns:1fr}
-  .marques-caisse{grid-template-columns:1fr 1fr}
-  .srr{grid-template-columns:auto 1fr}
-  .srr__right{display:none}
-}
-@media(max-width:560px){
-  .home-tiles{grid-template-columns:1fr 1fr}
-  .marques-caisse{grid-template-columns:1fr}
-  .articles-caisse{grid-template-columns:repeat(2,1fr)}
-  .modal-row{grid-template-columns:1fr}
-  .charge-row{grid-template-columns:1fr auto}
-  .charge-row__day{display:none}
-  .srr__pill{display:none}
-  .srr{grid-template-columns:1fr}
-}
-
-/* ══════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVE — iPhone / Android (375-430px)
-══════════════════════════════════════════════════════════════ */
-
-/* Bottom nav */
-.bottom-nav{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;
-  background:rgba(255,255,255,.92);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-top:1px solid rgba(26,22,18,.08);
-  padding:8px 0 max(env(safe-area-inset-bottom),8px);
-  z-index:100;
-  grid-template-columns:repeat(5,1fr);
-}
-.bnav-item{
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  padding:4px 0;background:none;border:none;cursor:pointer;
-  font-family:inherit;font-size:9px;font-weight:700;
-  letter-spacing:.04em;text-transform:uppercase;
-  color:rgba(26,22,18,.4);transition:color .15s;
-}
-.bnav-item--active{color:var(--salmon-d)}
-.bnav-item__icon{font-size:20px;line-height:1}
-.bnav-item__dot{width:4px;height:4px;border-radius:50%;background:var(--salmon);margin-top:1px;opacity:0;transition:opacity .15s}
-.bnav-item--active .bnav-item__dot{opacity:1}
-
-@media(max-width:768px){
-
-  /* Base */
-  .bottom-nav{display:grid}
-  .page{padding:12px 14px max(calc(env(safe-area-inset-bottom) + 80px),90px);gap:12px}
-
-  /* Header home */
-  .home-header{padding:14px 16px;gap:10px;border-radius:14px}
-  .logo-name{font-size:19px}
-  .logo-glyph{font-size:28px}
-  .home-kpis{gap:6px;margin-left:0;width:100%}
-  .kpi-chip{padding:8px 10px;border-radius:10px}
-  .kpi-chip__val{font-size:16px}
-
-  /* Tiles home */
-  .home-tiles{grid-template-columns:1fr 1fr;gap:10px}
-  .home-tiles--5{grid-template-columns:repeat(2,1fr)}
-  .home-tile{padding:16px 14px 14px;border-radius:14px}
-  .home-tile__label{font-size:12px}
-
-  /* Module header */
-  .module-header{padding:10px 14px;border-radius:12px;gap:8px}
-  .back-btn{width:36px;height:36px}
-  .btn-add{padding:8px 14px;font-size:12px}
-
-  /* Caisse */
-  .caisse-layout{grid-template-columns:1fr;grid-template-rows:1fr auto}
-  .caisse-right{max-height:45vh}
-  .articles-caisse{grid-template-columns:repeat(2,1fr);gap:8px}
-  .article-btn{padding:12px 8px;border-radius:12px}
-  .article-btn__nom{font-size:12px}
-  .article-btn__prix{font-size:15px}
-  .univers-grid{grid-template-columns:repeat(2,1fr);gap:8px}
-  .marques-caisse{grid-template-columns:repeat(2,1fr);gap:8px}
-  .marque-btn{padding:14px 10px}
-
-  /* Panier mobile */
-  .panier-header{padding:10px 14px}
-  .panier-lines{max-height:180px}
-  .panier-line{padding:8px 12px}
-  .panier-total{padding:10px 14px}
-  .pmt-grid{grid-template-columns:repeat(3,1fr);gap:6px}
-  .pmt-btn{padding:10px 6px;font-size:11px}
-
-  /* Stocks */
-  .stk-grid{grid-template-columns:1fr}
-  .stk-art{border-radius:12px;padding:14px}
-  .stk-controls{gap:8px}
-  .stk-numpad{gap:6px}
-  .stk-numpad-btn{height:52px;font-size:18px;border-radius:10px}
-
-  /* Finances */
-  .fin-kpis{grid-template-columns:1fr 1fr;gap:8px}
-  .fin-kpi{padding:14px 12px;border-radius:12px}
-  .fin-kpi__val{font-size:20px}
-  .fin-tx-list{gap:8px}
-  .fin-tx-row{padding:12px;border-radius:10px;gap:8px}
-
-  /* Mes Données */
-  .md-tiles{grid-template-columns:1fr 1fr;gap:10px}
-  .md-tile{padding:16px 12px;border-radius:14px}
-
-  /* POS Sections (Produits) */
-  .ps-toolbar{flex-wrap:wrap;gap:8px}
-  .ps-searchbar{min-width:100%;flex:none}
-  .ps-col-head{grid-template-columns:1fr 80px 80px 28px;padding:6px 10px}
-  .ps-row{grid-template-columns:1fr 80px 80px 28px;padding:0 10px;min-height:44px}
-  .ps-row__stock-val{font-size:14px}
-  .ps-row__price-val{font-size:14px}
-
-  /* Rubriques */
-  .rub-sheet{padding:20px 16px max(calc(env(safe-area-inset-bottom)+24px),24px)}
-
-  /* Modals / Sheets */
-  .modal-overlay{align-items:flex-end}
-  .modal-box{border-radius:20px 20px 0 0;max-height:85vh;padding:20px 16px max(calc(env(safe-area-inset-bottom)+16px),16px)}
-  .modal-row{grid-template-columns:1fr}
-
-  /* Breadcrumb */
-  .breadcrumb__btn{font-size:13px}
-
-  /* Toast */
-  .toast-stack{bottom:calc(env(safe-area-inset-bottom) + 72px);right:12px;left:12px}
-  .toast{min-width:auto;max-width:100%}
-
-  /* Profitabilité */
-  .profita-bar-wrap{padding:14px 16px}
-  .profita-detail{gap:10px}
-}
-
-@media(max-width:390px){
-  .home-tiles{grid-template-columns:1fr 1fr}
-  .articles-caisse{grid-template-columns:repeat(2,1fr)}
-  .pmt-grid{grid-template-columns:repeat(2,1fr)}
-  .fin-kpis{grid-template-columns:1fr}
-  .md-tiles{grid-template-columns:1fr 1fr}
-}
-
-`;
