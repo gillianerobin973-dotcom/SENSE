@@ -159,9 +159,1014 @@ function deduireStock(catalogue, universId, marqueId, articleId, qty=1) {
 // ══════════════════════════════════════════════════════════════════════
 // APP ROOT
 // ══════════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════════
+// SUPER-ADMIN — Interface God Mode
+// ══════════════════════════════════════════════════════════════════════
+
+
+// ══════════════════════════════════════════════════════════════════════
+// NOVACAISSE — Super Admin Interface
+// Route protégée : /super-admin
+// Accès : SUPER_ADMIN uniquement
+// ══════════════════════════════════════════════════════════════════════
+
+const MODULES = [
+  { id: "pos",        label: "Caisse POS",      icon: "🧾", cat: "core" },
+  { id: "stock",      label: "Stocks",           icon: "📦", cat: "core" },
+  { id: "finance",    label: "Finances",         icon: "💰", cat: "core" },
+  { id: "flux_masse", label: "Flux Masse",       icon: "⚖️",  cat: "flux", desc: "Poids / Volume / Vrac" },
+  { id: "flux_id",    label: "Flux Identité",    icon: "🔖", cat: "flux", desc: "IMEI / Série / Garantie" },
+  { id: "flux_dispo", label: "Flux Disponibilité",icon:"📅", cat: "flux", desc: "Location / Réservation" },
+  { id: "flux_seg",   label: "Flux Segmentation",icon: "🎨", cat: "flux", desc: "Variantes / Tailles / Couleurs" },
+  { id: "loyalty",    label: "Fidélité",         icon: "⭐", cat: "premium" },
+  { id: "booking",    label: "Réservations",     icon: "🗓️",  cat: "premium" },
+  { id: "multi_store",label: "Multi-boutiques",  icon: "🏪", cat: "premium" },
+];
+
+const PLANS = [
+  { id: "starter",    label: "Starter",    price: 29,  color: "#6B7280" },
+  { id: "pro",        label: "Pro",        price: 79,  color: "#FF8C69" },
+  { id: "enterprise", label: "Enterprise", price: 199, color: "#A78BFA" },
+];
+
+const BUSINESS_TYPES = [
+  { id: "retail",   label: "Boutique Retail",   icon: "🛍️" },
+  { id: "cafe",     label: "Café / Bar",         icon: "☕" },
+  { id: "fashion",  label: "Mode / Vêtements",  icon: "👗" },
+  { id: "luxury",   label: "Luxe / Bijouterie",  icon: "💎" },
+  { id: "services", label: "Services",           icon: "⚙️" },
+  { id: "custom",   label: "Personnalisé",       icon: "🔧" },
+];
+
+const DEMO_TENANTS = [
+  {
+    id: "t1", name: "Shop In Café", slug: "shop-in-cafe", status: "active",
+    plan: "pro", business_type: "cafe", primary_color: "#FF8C69",
+    modules: ["pos","stock","finance","flux_masse"],
+    users: 3, products: 42, revenue: 12450,
+  },
+  {
+    id: "t2", name: "Boutique Élite", slug: "boutique-elite", status: "trial",
+    plan: "starter", business_type: "fashion", primary_color: "#A78BFA",
+    modules: ["pos","stock"],
+    users: 1, products: 8, revenue: 0,
+  },
+  {
+    id: "t3", name: "TechRepair Pro", slug: "techrepair", status: "active",
+    plan: "enterprise", business_type: "retail", primary_color: "#5B9EF5",
+    modules: ["pos","stock","finance","flux_id","flux_seg"],
+    users: 7, products: 234, revenue: 38900,
+  },
+];
+
+// ──────────────────────────────────────────────────────────────────────
+// Composant Principal
+// ──────────────────────────────────────────────────────────────────────
+export default function SuperAdmin() {
+  const [view,         setView]        = useState("dashboard"); // dashboard | tenants | create | tenant-detail | audit
+  const [tenants,      setTenants]     = useState(DEMO_TENANTS);
+  const [selected,     setSelected]    = useState(null);
+  const [createForm,   setCreateForm]  = useState(defaultForm());
+  const [searchTenant, setSearchTenant]= useState("");
+  const [filterStatus, setFilterStatus]= useState("all");
+  const [auditLogs,    setAuditLogs]   = useState(demoAuditLogs());
+  const [toasts,       setToasts]      = useState([]);
+
+  function toast(msg, type="success") {
+    const id = Date.now();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500);
+  }
+
+  function defaultForm() {
+    return {
+      name: "", slug: "", business_type: "retail", plan: "pro",
+      primary_color: "#FF8C69", secondary_color: "#1A1612",
+      accent_color: "#4CAF87", logo_url: "",
+      modules: ["pos","stock","finance"],
+      flux_masse: false, flux_identite: false, flux_dispo: false, flux_segment: false,
+      quota_users: 5, quota_products: 500,
+      status: "trial",
+    };
+  }
+
+  function createTenant() {
+    if (!createForm.name || !createForm.slug) { toast("Nom et slug requis", "error"); return; }
+    const newT = {
+      id: Date.now().toString(),
+      ...createForm,
+      users: 0, products: 0, revenue: 0,
+    };
+    setTenants(p => [...p, newT]);
+    setCreateForm(defaultForm());
+    setView("tenants");
+    toast(`✓ ${newT.name} créé avec succès`);
+  }
+
+  function toggleModule(mod) {
+    setCreateForm(p => ({
+      ...p,
+      modules: p.modules.includes(mod)
+        ? p.modules.filter(m => m !== mod)
+        : [...p.modules, mod]
+    }));
+  }
+
+  function toggleTenantModule(tenantId, mod) {
+    setTenants(p => p.map(t => t.id !== tenantId ? t : {
+      ...t,
+      modules: t.modules.includes(mod) ? t.modules.filter(m => m !== mod) : [...t.modules, mod]
+    }));
+    toast(`Module mis à jour`);
+  }
+
+  function suspendTenant(id) {
+    setTenants(p => p.map(t => t.id !== id ? t :
+      { ...t, status: t.status === "suspended" ? "active" : "suspended" }));
+    const t = tenants.find(t => t.id === id);
+    toast(t?.status === "suspended" ? `${t.name} réactivé` : `${t?.name} suspendu`, "warning");
+  }
+
+  function injectDemo(id) {
+    setTenants(p => p.map(t => t.id !== id ? t :
+      { ...t, products: 42, users: 3, revenue: 5200 }));
+    toast("✓ Données démo injectées");
+  }
+
+  const filtered = tenants.filter(t => {
+    const q = searchTenant.toLowerCase();
+    const matchQ = !q || t.name.toLowerCase().includes(q) || t.slug.includes(q);
+    const matchS = filterStatus === "all" || t.status === filterStatus;
+    return matchQ && matchS;
+  });
+
+  const stats = {
+    total: tenants.length,
+    active: tenants.filter(t => t.status === "active").length,
+    trial: tenants.filter(t => t.status === "trial").length,
+    suspended: tenants.filter(t => t.status === "suspended").length,
+    revenue: tenants.reduce((s, t) => s + (t.revenue || 0), 0),
+  };
+
+  return (
+    <>
+      <style>{CSS}</style>
+      <div className="sa-root">
+
+        {/* ── Sidebar ── */}
+        <aside className="sa-sidebar">
+          <div className="sa-logo">
+            <span className="sa-logo__icon">N</span>
+            <div>
+              <div className="sa-logo__title">NovaCaisse</div>
+              <div className="sa-logo__sub">God Mode</div>
+            </div>
+          </div>
+
+          <nav className="sa-nav">
+            {[
+              { id: "dashboard", icon: "◉", label: "Dashboard" },
+              { id: "tenants",   icon: "⬡", label: "Tenants" },
+              { id: "create",    icon: "+", label: "Nouveau Tenant" },
+              { id: "audit",     icon: "⊙", label: "Audit Log" },
+            ].map(item => (
+              <button key={item.id}
+                className={`sa-nav__item${view === item.id ? " sa-nav__item--active" : ""}`}
+                onClick={() => setView(item.id)}>
+                <span className="sa-nav__icon">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="sa-sidebar__footer">
+            <div className="sa-user">
+              <div className="sa-user__avatar">G</div>
+              <div>
+                <div className="sa-user__name">Gilliane Robin</div>
+                <div className="sa-user__role">Super Admin</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Contenu principal ── */}
+        <main className="sa-main">
+
+          {/* DASHBOARD */}
+          {view === "dashboard" && (
+            <div className="sa-page fadein">
+              <header className="sa-page__header">
+                <div>
+                  <h1 className="sa-page__title">Tableau de bord</h1>
+                  <p className="sa-page__sub">Vue globale de la plateforme NovaCaisse</p>
+                </div>
+                <div className="sa-header__date">{new Date().toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long" })}</div>
+              </header>
+
+              {/* KPIs */}
+              <div className="sa-kpis">
+                <div className="sa-kpi">
+                  <div className="sa-kpi__val">{stats.total}</div>
+                  <div className="sa-kpi__label">Tenants total</div>
+                </div>
+                <div className="sa-kpi sa-kpi--green">
+                  <div className="sa-kpi__val">{stats.active}</div>
+                  <div className="sa-kpi__label">Actifs</div>
+                </div>
+                <div className="sa-kpi sa-kpi--amber">
+                  <div className="sa-kpi__val">{stats.trial}</div>
+                  <div className="sa-kpi__label">En essai</div>
+                </div>
+                <div className="sa-kpi sa-kpi--red">
+                  <div className="sa-kpi__val">{stats.suspended}</div>
+                  <div className="sa-kpi__label">Suspendus</div>
+                </div>
+                <div className="sa-kpi sa-kpi--accent">
+                  <div className="sa-kpi__val">{stats.revenue.toLocaleString("fr-FR")} €</div>
+                  <div className="sa-kpi__label">MRR estimé</div>
+                </div>
+              </div>
+
+              {/* Liste rapide tenants */}
+              <div className="sa-card">
+                <div className="sa-card__head">
+                  <h2 className="sa-card__title">Tenants récents</h2>
+                  <button className="sa-btn sa-btn--ghost" onClick={() => setView("tenants")}>Voir tout →</button>
+                </div>
+                {tenants.slice(0, 5).map(t => (
+                  <TenantRow key={t.id} tenant={t}
+                    onSelect={() => { setSelected(t); setView("tenant-detail"); }}
+                    onSuspend={() => suspendTenant(t.id)}
+                    onDemo={() => injectDemo(t.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* LISTE TENANTS */}
+          {view === "tenants" && (
+            <div className="sa-page fadein">
+              <header className="sa-page__header">
+                <div>
+                  <h1 className="sa-page__title">Tenants</h1>
+                  <p className="sa-page__sub">{filtered.length} entreprise{filtered.length > 1 ? "s" : ""}</p>
+                </div>
+                <button className="sa-btn sa-btn--primary" onClick={() => setView("create")}>+ Nouveau Tenant</button>
+              </header>
+
+              <div className="sa-filters">
+                <input className="sa-search" placeholder="Rechercher…"
+                  value={searchTenant} onChange={e => setSearchTenant(e.target.value)}/>
+                <div className="sa-filter-btns">
+                  {["all","active","trial","suspended"].map(s => (
+                    <button key={s}
+                      className={`sa-filter-btn${filterStatus === s ? " active" : ""}`}
+                      onClick={() => setFilterStatus(s)}>
+                      {s === "all" ? "Tous" : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="sa-card">
+                {filtered.map(t => (
+                  <TenantRow key={t.id} tenant={t}
+                    onSelect={() => { setSelected(t); setView("tenant-detail"); }}
+                    onSuspend={() => suspendTenant(t.id)}
+                    onDemo={() => injectDemo(t.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CRÉATION TENANT */}
+          {view === "create" && (
+            <div className="sa-page fadein">
+              <header className="sa-page__header">
+                <div>
+                  <h1 className="sa-page__title">Nouveau Tenant</h1>
+                  <p className="sa-page__sub">Déployer une nouvelle instance NovaCaisse</p>
+                </div>
+                <button className="sa-btn sa-btn--ghost" onClick={() => setView("tenants")}>← Retour</button>
+              </header>
+
+              <div className="sa-create-grid">
+
+                {/* Colonne gauche : infos de base */}
+                <div className="sa-col">
+                  <div className="sa-card">
+                    <h3 className="sa-section-title">Informations</h3>
+                    <div className="sa-field">
+                      <label className="sa-label">Nom de l'entreprise</label>
+                      <input className="sa-input" placeholder="ex: Ma Boutique Paris"
+                        value={createForm.name}
+                        onChange={e => setCreateForm(p => ({...p, name: e.target.value,
+                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "-")}))}/>
+                    </div>
+                    <div className="sa-field">
+                      <label className="sa-label">Slug URL</label>
+                      <div className="sa-input-prefix">
+                        <span className="sa-prefix">/b/</span>
+                        <input className="sa-input sa-input--slug" placeholder="ma-boutique-paris"
+                          value={createForm.slug}
+                          onChange={e => setCreateForm(p => ({...p, slug: e.target.value}))}/>
+                      </div>
+                    </div>
+                    <div className="sa-field">
+                      <label className="sa-label">Type d'activité</label>
+                      <div className="sa-biz-grid">
+                        {BUSINESS_TYPES.map(bt => (
+                          <button key={bt.id}
+                            className={`sa-biz-btn${createForm.business_type === bt.id ? " active" : ""}`}
+                            onClick={() => setCreateForm(p => ({...p, business_type: bt.id}))}>
+                            <span>{bt.icon}</span>
+                            <span>{bt.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="sa-field">
+                      <label className="sa-label">Plan de facturation</label>
+                      <div className="sa-plans-grid">
+                        {PLANS.map(pl => (
+                          <button key={pl.id}
+                            className={`sa-plan-btn${createForm.plan === pl.id ? " active" : ""}`}
+                            style={{ "--pc": pl.color }}
+                            onClick={() => setCreateForm(p => ({...p, plan: pl.id}))}>
+                            <span className="sa-plan-name">{pl.label}</span>
+                            <span className="sa-plan-price">{pl.price} €/mois</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quotas */}
+                  <div className="sa-card">
+                    <h3 className="sa-section-title">Quotas</h3>
+                    <div className="sa-field-row">
+                      <div className="sa-field">
+                        <label className="sa-label">Max utilisateurs</label>
+                        <input className="sa-input" type="number" min="1"
+                          value={createForm.quota_users}
+                          onChange={e => setCreateForm(p => ({...p, quota_users: +e.target.value}))}/>
+                      </div>
+                      <div className="sa-field">
+                        <label className="sa-label">Max produits</label>
+                        <input className="sa-input" type="number" min="1"
+                          value={createForm.quota_products}
+                          onChange={e => setCreateForm(p => ({...p, quota_products: +e.target.value}))}/>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Colonne droite : branding + modules */}
+                <div className="sa-col">
+
+                  {/* Branding */}
+                  <div className="sa-card">
+                    <h3 className="sa-section-title">Branding</h3>
+                    <div className="sa-brand-preview" style={{
+                      background: `linear-gradient(135deg, ${createForm.primary_color}22, ${createForm.accent_color}11)`,
+                      borderColor: createForm.primary_color + "44"
+                    }}>
+                      <div className="sa-brand-dot" style={{ background: createForm.primary_color }}/>
+                      <div>
+                        <div className="sa-brand-name" style={{ color: createForm.primary_color }}>
+                          {createForm.name || "Nom de l'entreprise"}
+                        </div>
+                        <div className="sa-brand-slug">/{createForm.slug || "slug"}</div>
+                      </div>
+                    </div>
+                    <div className="sa-field-row">
+                      <div className="sa-field">
+                        <label className="sa-label">Couleur principale</label>
+                        <div className="sa-color-wrap">
+                          <input type="color" className="sa-color-input"
+                            value={createForm.primary_color}
+                            onChange={e => setCreateForm(p => ({...p, primary_color: e.target.value}))}/>
+                          <input className="sa-input sa-input--hex"
+                            value={createForm.primary_color}
+                            onChange={e => setCreateForm(p => ({...p, primary_color: e.target.value}))}/>
+                        </div>
+                      </div>
+                      <div className="sa-field">
+                        <label className="sa-label">Couleur accent</label>
+                        <div className="sa-color-wrap">
+                          <input type="color" className="sa-color-input"
+                            value={createForm.accent_color}
+                            onChange={e => setCreateForm(p => ({...p, accent_color: e.target.value}))}/>
+                          <input className="sa-input sa-input--hex"
+                            value={createForm.accent_color}
+                            onChange={e => setCreateForm(p => ({...p, accent_color: e.target.value}))}/>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="sa-field">
+                      <label className="sa-label">URL du logo</label>
+                      <input className="sa-input" placeholder="https://..."
+                        value={createForm.logo_url}
+                        onChange={e => setCreateForm(p => ({...p, logo_url: e.target.value}))}/>
+                    </div>
+                  </div>
+
+                  {/* Modules */}
+                  <div className="sa-card">
+                    <h3 className="sa-section-title">Modules & Flux Logiques</h3>
+
+                    {["core","flux","premium"].map(cat => (
+                      <div key={cat} className="sa-mod-group">
+                        <div className="sa-mod-cat">
+                          {cat === "core" ? "CORE" : cat === "flux" ? "FLUX LOGIQUES" : "PREMIUM"}
+                        </div>
+                        {MODULES.filter(m => m.cat === cat).map(mod => (
+                          <label key={mod.id} className="sa-mod-row">
+                            <span className="sa-mod-icon">{mod.icon}</span>
+                            <div className="sa-mod-info">
+                              <span className="sa-mod-label">{mod.label}</span>
+                              {mod.desc && <span className="sa-mod-desc">{mod.desc}</span>}
+                            </div>
+                            <div
+                              className={`sa-switch${createForm.modules.includes(mod.id) ? " sa-switch--on" : ""}`}
+                              onClick={() => toggleModule(mod.id)}>
+                              <div className="sa-switch__thumb"/>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Action */}
+                  <button className="sa-btn sa-btn--primary sa-btn--full" onClick={createTenant}>
+                    Déployer le tenant →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* DÉTAIL TENANT */}
+          {view === "tenant-detail" && selected && (
+            <TenantDetail
+              tenant={tenants.find(t => t.id === selected.id) || selected}
+              onBack={() => setView("tenants")}
+              onToggleModule={(mod) => toggleTenantModule(selected.id, mod)}
+              onSuspend={() => suspendTenant(selected.id)}
+              onDemo={() => injectDemo(selected.id)}
+              onUpdate={(updates) => {
+                setTenants(p => p.map(t => t.id === selected.id ? {...t, ...updates} : t));
+                toast("Tenant mis à jour");
+              }}
+            />
+          )}
+
+          {/* AUDIT LOG */}
+          {view === "audit" && (
+            <div className="sa-page fadein">
+              <header className="sa-page__header">
+                <div>
+                  <h1 className="sa-page__title">Audit Log</h1>
+                  <p className="sa-page__sub">Journal de toutes les actions sensibles</p>
+                </div>
+              </header>
+              <div className="sa-card">
+                <div className="sa-audit-head">
+                  <span>Action</span><span>Utilisateur</span><span>Tenant</span><span>Date</span>
+                </div>
+                {auditLogs.map((log, i) => (
+                  <div key={i} className="sa-audit-row">
+                    <div className="sa-audit-action">
+                      <span className={`sa-audit-badge sa-audit-badge--${log.type}`}>{log.action}</span>
+                    </div>
+                    <div className="sa-audit-user">{log.user}</div>
+                    <div className="sa-audit-tenant">{log.tenant}</div>
+                    <div className="sa-audit-date">{log.date}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* Toasts */}
+        <div className="sa-toasts">
+          {toasts.map(t => (
+            <div key={t.id} className={`sa-toast sa-toast--${t.type || "success"}`}>{t.msg}</div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// TenantRow
+// ──────────────────────────────────────────────────────────────────────
+function TenantRow({ tenant, onSelect, onSuspend, onDemo }) {
+  return (
+    <div className="sa-tenant-row">
+      <div className="sa-tenant-color" style={{ background: tenant.primary_color }}/>
+      <div className="sa-tenant-info" onClick={onSelect}>
+        <div className="sa-tenant-name">{tenant.name}</div>
+        <div className="sa-tenant-slug">/{tenant.slug} · {tenant.plan}</div>
+      </div>
+      <div className="sa-tenant-stats">
+        <span>{tenant.users} users</span>
+        <span>{tenant.products} produits</span>
+        <span>{(tenant.revenue || 0).toLocaleString("fr-FR")} €</span>
+      </div>
+      <StatusBadge status={tenant.status}/>
+      <div className="sa-tenant-actions">
+        <button className="sa-action-btn" onClick={onSelect} title="Voir le détail">⚙</button>
+        <button className="sa-action-btn" onClick={onDemo} title="Injecter démo">🎲</button>
+        <button className={`sa-action-btn${tenant.status === "suspended" ? " sa-action-btn--green" : " sa-action-btn--red"}`}
+          onClick={onSuspend} title={tenant.status === "suspended" ? "Réactiver" : "Suspendre"}>
+          {tenant.status === "suspended" ? "▶" : "⏸"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// TenantDetail
+// ──────────────────────────────────────────────────────────────────────
+function TenantDetail({ tenant, onBack, onToggleModule, onSuspend, onDemo, onUpdate }) {
+  const [tab, setTab] = useState("overview");
+  const [color, setColor] = useState(tenant.primary_color);
+
+  const quotaUserPct    = Math.round((tenant.users    / (tenant.quota_users    || 5)) * 100);
+  const quotaProductPct = Math.round((tenant.products / (tenant.quota_products || 500)) * 100);
+
+  return (
+    <div className="sa-page fadein">
+      <header className="sa-page__header">
+        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+          <button className="sa-btn sa-btn--ghost" onClick={onBack}>←</button>
+          <div className="sa-tenant-color sa-tenant-color--lg" style={{ background: tenant.primary_color }}/>
+          <div>
+            <h1 className="sa-page__title">{tenant.name}</h1>
+            <p className="sa-page__sub">/b/{tenant.slug} · {tenant.plan}</p>
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button className="sa-btn sa-btn--ghost" onClick={onDemo}>🎲 Démo</button>
+          <button className={`sa-btn${tenant.status === "suspended" ? " sa-btn--green" : " sa-btn--red"}`}
+            onClick={onSuspend}>
+            {tenant.status === "suspended" ? "▶ Réactiver" : "⏸ Suspendre"}
+          </button>
+        </div>
+      </header>
+
+      <div className="sa-tabs">
+        {["overview","modules","branding","quotas","audit"].map(t => (
+          <button key={t} className={`sa-tab${tab === t ? " sa-tab--active" : ""}`}
+            onClick={() => setTab(t)}>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && (
+        <div className="sa-card">
+          <div className="sa-detail-kpis">
+            <div className="sa-detail-kpi">
+              <div className="sa-detail-kpi__val">{tenant.users}</div>
+              <div className="sa-detail-kpi__label">Utilisateurs</div>
+            </div>
+            <div className="sa-detail-kpi">
+              <div className="sa-detail-kpi__val">{tenant.products}</div>
+              <div className="sa-detail-kpi__label">Produits</div>
+            </div>
+            <div className="sa-detail-kpi">
+              <div className="sa-detail-kpi__val">{(tenant.revenue||0).toLocaleString("fr-FR")} €</div>
+              <div className="sa-detail-kpi__label">CA</div>
+            </div>
+            <div className="sa-detail-kpi">
+              <StatusBadge status={tenant.status}/>
+              <div className="sa-detail-kpi__label">Statut</div>
+            </div>
+          </div>
+          <div className="sa-info-rows">
+            <div className="sa-info-row"><span>Plan</span><strong>{tenant.plan}</strong></div>
+            <div className="sa-info-row"><span>Type</span><strong>{tenant.business_type}</strong></div>
+            <div className="sa-info-row"><span>Lien public</span>
+              <strong style={{fontFamily:"monospace"}}>/b/{tenant.slug}</strong></div>
+            <div className="sa-info-row"><span>Modules actifs</span>
+              <strong>{tenant.modules?.length || 0}</strong></div>
+          </div>
+        </div>
+      )}
+
+      {tab === "modules" && (
+        <div className="sa-card">
+          <h3 className="sa-section-title">Modules & Flux actifs</h3>
+          {["core","flux","premium"].map(cat => (
+            <div key={cat} className="sa-mod-group">
+              <div className="sa-mod-cat">
+                {cat === "core" ? "CORE" : cat === "flux" ? "FLUX LOGIQUES" : "PREMIUM"}
+              </div>
+              {MODULES.filter(m => m.cat === cat).map(mod => (
+                <label key={mod.id} className="sa-mod-row">
+                  <span className="sa-mod-icon">{mod.icon}</span>
+                  <div className="sa-mod-info">
+                    <span className="sa-mod-label">{mod.label}</span>
+                    {mod.desc && <span className="sa-mod-desc">{mod.desc}</span>}
+                  </div>
+                  <div
+                    className={`sa-switch${tenant.modules?.includes(mod.id) ? " sa-switch--on" : ""}`}
+                    style={{ "--sc": tenant.primary_color }}
+                    onClick={() => onToggleModule(mod.id)}>
+                    <div className="sa-switch__thumb"/>
+                  </div>
+                </label>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "branding" && (
+        <div className="sa-card">
+          <h3 className="sa-section-title">Branding dynamique</h3>
+          <p style={{ fontSize:13, color:"#9E8E82", marginBottom:16 }}>
+            Les modifications s'appliquent instantanément dans l'interface du client.
+          </p>
+          <div className="sa-brand-preview" style={{
+            background: `linear-gradient(135deg, ${tenant.primary_color}22, #4CAF8711)`,
+            borderColor: tenant.primary_color + "44", marginBottom: 20
+          }}>
+            <div className="sa-brand-dot" style={{ background: tenant.primary_color }}/>
+            <div>
+              <div className="sa-brand-name" style={{ color: tenant.primary_color }}>{tenant.name}</div>
+              <div className="sa-brand-slug" style={{ fontSize:12, color:"#9E8E82" }}>/{tenant.slug}</div>
+            </div>
+          </div>
+          <div className="sa-field">
+            <label className="sa-label">Couleur principale</label>
+            <div className="sa-color-wrap">
+              <input type="color" className="sa-color-input" value={color}
+                onChange={e => setColor(e.target.value)}/>
+              <input className="sa-input sa-input--hex" value={color}
+                onChange={e => setColor(e.target.value)}/>
+            </div>
+          </div>
+          <button className="sa-btn sa-btn--primary"
+            onClick={() => onUpdate({ primary_color: color })}>
+            Appliquer le branding →
+          </button>
+        </div>
+      )}
+
+      {tab === "quotas" && (
+        <div className="sa-card">
+          <h3 className="sa-section-title">Quotas & Limites</h3>
+          <div className="sa-quota-row">
+            <div className="sa-quota-label">
+              <span>Utilisateurs</span>
+              <span>{tenant.users} / {tenant.quota_users || 5}</span>
+            </div>
+            <div className="sa-quota-bar">
+              <div className="sa-quota-fill"
+                style={{ width: `${Math.min(100, quotaUserPct)}%`,
+                  background: quotaUserPct > 80 ? "#E05252" : "#4CAF87" }}/>
+            </div>
+            {quotaUserPct > 80 && <div className="sa-quota-alert">⚠ Limite proche</div>}
+          </div>
+          <div className="sa-quota-row">
+            <div className="sa-quota-label">
+              <span>Produits</span>
+              <span>{tenant.products} / {tenant.quota_products || 500}</span>
+            </div>
+            <div className="sa-quota-bar">
+              <div className="sa-quota-fill"
+                style={{ width: `${Math.min(100, quotaProductPct)}%`,
+                  background: quotaProductPct > 80 ? "#E05252" : "#4CAF87" }}/>
+            </div>
+            {quotaProductPct > 80 && <div className="sa-quota-alert">⚠ Limite proche</div>}
+          </div>
+        </div>
+      )}
+
+      {tab === "audit" && (
+        <div className="sa-card">
+          <div className="sa-audit-head">
+            <span>Action</span><span>Utilisateur</span><span>Date</span>
+          </div>
+          {demoAuditLogs().filter(l => l.tenant === tenant.name).map((log, i) => (
+            <div key={i} className="sa-audit-row">
+              <span className={`sa-audit-badge sa-audit-badge--${log.type}`}>{log.action}</span>
+              <span className="sa-audit-user">{log.user}</span>
+              <span className="sa-audit-date">{log.date}</span>
+            </div>
+          ))}
+          {demoAuditLogs().filter(l => l.tenant === tenant.name).length === 0 && (
+            <div style={{ padding:"24px", textAlign:"center", color:"#9E8E82", fontSize:13 }}>
+              Aucune action enregistrée pour ce tenant.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// StatusBadge
+// ──────────────────────────────────────────────────────────────────────
+function StatusBadge({ status }) {
+  const map = {
+    active:    { label: "Actif",     color: "#2D9B6F", bg: "rgba(76,175,135,.12)" },
+    trial:     { label: "Essai",     color: "#F59E0B", bg: "rgba(245,158,11,.12)" },
+    suspended: { label: "Suspendu",  color: "#E05252", bg: "rgba(224,82,82,.12)"  },
+    cancelled: { label: "Annulé",    color: "#9E8E82", bg: "rgba(158,142,130,.12)"},
+  };
+  const s = map[status] || map.active;
+  return (
+    <span className="sa-status-badge" style={{ color: s.color, background: s.bg }}>
+      {s.label}
+    </span>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Données démo
+// ──────────────────────────────────────────────────────────────────────
+function demoAuditLogs() {
+  return [
+    { action:"product.delete",  type:"danger",  user:"owner@shopincafe.fr",  tenant:"Shop In Café",  date:"03/05 14:32" },
+    { action:"price.update",    type:"warning", user:"owner@shopincafe.fr",  tenant:"Shop In Café",  date:"03/05 12:18" },
+    { action:"user.create",     type:"info",    user:"admin@novacaisse.io",   tenant:"Shop In Café",  date:"02/05 09:45" },
+    { action:"product.delete",  type:"danger",  user:"owner@techrepair.fr",   tenant:"TechRepair Pro",date:"01/05 16:20" },
+    { action:"transaction.void",type:"warning", user:"staff@shopincafe.fr",   tenant:"Shop In Café",  date:"30/04 11:05" },
+  ];
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// CSS
+// ──────────────────────────────────────────────────────────────────────
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg: #0E0D0C;
+  --bg2: #161513;
+  --bg3: #1E1C1A;
+  --line: rgba(255,255,255,.07);
+  --text: #F5F0EB;
+  --t2: #A89F96;
+  --t3: #6B635C;
+  --salmon: #FF8C69;
+  --salmon-d: #E8704A;
+  --green: #4CAF87;
+  --red: #E05252;
+  --amber: #F59E0B;
+  --blue: #5B9EF5;
+  --purple: #A78BFA;
+  --r: 12px;
+  --rsm: 8px;
+}
+
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
+
+.sa-root{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sa-sidebar{
+  background:var(--bg2);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:0;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.sa-logo{
+  display:flex;align-items:center;gap:12px;
+  padding:24px 20px;border-bottom:1px solid var(--line);
+}
+.sa-logo__icon{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--salmon),var(--salmon-d));
+  color:#fff;font-weight:900;font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.sa-logo__title{font-size:15px;font-weight:800;color:var(--text)}
+.sa-logo__sub{font-size:11px;color:var(--salmon);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.sa-nav{padding:12px 12px;display:flex;flex-direction:column;gap:2px;flex:1}
+.sa-nav__item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--rsm);
+  border:none;background:transparent;
+  color:var(--t2);font-family:inherit;font-size:13px;font-weight:500;
+  cursor:pointer;text-align:left;
+  transition:all .15s;
+}
+.sa-nav__item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.sa-nav__item--active{background:rgba(255,140,105,.1);color:var(--salmon) !important}
+.sa-nav__icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.sa-sidebar__footer{border-top:1px solid var(--line);padding:16px 20px}
+.sa-user{display:flex;align-items:center;gap:10px}
+.sa-user__avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--salmon),var(--salmon-d));color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sa-user__name{font-size:13px;font-weight:600;color:var(--text)}
+.sa-user__role{font-size:11px;color:var(--salmon);font-weight:600}
+
+/* Main */
+.sa-main{background:var(--bg);overflow-y:auto;padding:0}
+.sa-page{max-width:1100px;margin:0 auto;padding:32px 28px 64px;display:flex;flex-direction:column;gap:20px}
+.fadein{animation:fadeUp .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* Header */
+.sa-page__header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.sa-page__title{font-family:'DM Serif Display',serif;font-size:28px;letter-spacing:-.02em;color:var(--text);margin-bottom:4px}
+.sa-page__sub{font-size:13px;color:var(--t3)}
+.sa-header__date{font-size:13px;color:var(--t3);padding-top:8px;text-transform:capitalize}
+
+/* KPIs */
+.sa-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.sa-kpi{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px 20px}
+.sa-kpi__val{font-family:'DM Serif Display',serif;font-size:28px;color:var(--text);margin-bottom:4px}
+.sa-kpi__label{font-size:12px;color:var(--t3)}
+.sa-kpi--green .sa-kpi__val{color:var(--green)}
+.sa-kpi--amber .sa-kpi__val{color:var(--amber)}
+.sa-kpi--red .sa-kpi__val{color:var(--red)}
+.sa-kpi--accent .sa-kpi__val{color:var(--salmon)}
+
+/* Cards */
+.sa-card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:14px}
+.sa-card__head{display:flex;justify-content:space-between;align-items:center}
+.sa-card__title{font-size:16px;font-weight:700;color:var(--text)}
+
+/* Tenant row */
+.sa-tenant-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.sa-tenant-row:last-child{border-bottom:none}
+.sa-tenant-color{width:6px;height:40px;border-radius:3px;flex-shrink:0}
+.sa-tenant-color--lg{width:10px;height:52px;border-radius:5px;flex-shrink:0}
+.sa-tenant-info{flex:1;cursor:pointer}
+.sa-tenant-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.sa-tenant-slug{font-size:11px;color:var(--t3)}
+.sa-tenant-stats{display:flex;gap:16px;font-size:12px;color:var(--t2)}
+.sa-tenant-actions{display:flex;gap:6px;flex-shrink:0}
+.sa-action-btn{width:30px;height:30px;border-radius:var(--rsm);border:1px solid var(--line);background:transparent;color:var(--t2);cursor:pointer;font-size:13px;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.sa-action-btn:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15);color:var(--text)}
+.sa-action-btn--red:hover{border-color:var(--red);color:var(--red);background:rgba(224,82,82,.08)}
+.sa-action-btn--green:hover{border-color:var(--green);color:var(--green);background:rgba(76,175,135,.08)}
+
+/* Status badge */
+.sa-status-badge{padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;white-space:nowrap}
+
+/* Filters */
+.sa-filters{display:flex;gap:10px;align-items:center}
+.sa-search{flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:var(--rsm);padding:10px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .15s}
+.sa-search:focus{border-color:rgba(255,140,105,.4)}
+.sa-search::placeholder{color:var(--t3)}
+.sa-filter-btns{display:flex;gap:4px}
+.sa-filter-btn{padding:8px 12px;border-radius:var(--rsm);border:1px solid var(--line);background:transparent;color:var(--t2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.sa-filter-btn.active,.sa-filter-btn:hover{border-color:var(--salmon);color:var(--salmon);background:rgba(255,140,105,.08)}
+
+/* Create form */
+.sa-create-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.sa-col{display:flex;flex-direction:column;gap:16px}
+.sa-section-title{font-size:13px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.sa-field{display:flex;flex-direction:column;gap:6px}
+.sa-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sa-label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+.sa-input{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--rsm);padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;width:100%;outline:none;transition:all .18s}
+.sa-input:focus{border-color:rgba(255,140,105,.5);background:rgba(255,140,105,.03)}
+.sa-input--hex{width:110px}
+.sa-input--slug{border-left:none;border-radius:0 var(--rsm) var(--rsm) 0}
+.sa-input-prefix{display:flex;align-items:center}
+.sa-prefix{background:rgba(255,255,255,.06);border:1px solid var(--line);border-right:none;border-radius:var(--rsm) 0 0 var(--rsm);padding:11px 12px;font-size:13px;color:var(--t3);white-space:nowrap}
+
+/* Business type grid */
+.sa-biz-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sa-biz-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rsm);border:1px solid var(--line);background:transparent;color:var(--t2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;text-align:left}
+.sa-biz-btn.active,.sa-biz-btn:hover{border-color:var(--salmon);color:var(--salmon);background:rgba(255,140,105,.08)}
+
+/* Plans */
+.sa-plans-grid{display:flex;gap:8px}
+.sa-plan-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px;border-radius:var(--rsm);border:1.5px solid var(--line);background:transparent;cursor:pointer;transition:all .15s}
+.sa-plan-btn.active,.sa-plan-btn:hover{border-color:var(--pc);background:color-mix(in srgb,var(--pc) 8%,transparent)}
+.sa-plan-name{font-size:13px;font-weight:700;color:var(--text)}
+.sa-plan-price{font-size:11px;color:var(--t3)}
+.sa-plan-btn.active .sa-plan-name{color:var(--pc)}
+
+/* Color picker */
+.sa-color-wrap{display:flex;align-items:center;gap:8px}
+.sa-color-input{width:42px;height:38px;border:1px solid var(--line);border-radius:var(--rsm);background:transparent;cursor:pointer;padding:2px}
+
+/* Brand preview */
+.sa-brand-preview{display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--rsm);border:1px solid;margin-bottom:8px;transition:all .3s}
+.sa-brand-dot{width:40px;height:40px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.sa-brand-name{font-size:16px;font-weight:700;margin-bottom:2px;transition:color .3s}
+.sa-brand-slug{font-size:12px;color:var(--t3)}
+
+/* Modules */
+.sa-mod-group{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.sa-mod-cat{font-size:10px;font-weight:800;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;padding:8px 0 4px}
+.sa-mod-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--rsm);cursor:pointer;transition:background .15s;user-select:none}
+.sa-mod-row:hover{background:rgba(255,255,255,.03)}
+.sa-mod-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.sa-mod-info{flex:1}
+.sa-mod-label{display:block;font-size:13px;font-weight:600;color:var(--text)}
+.sa-mod-desc{display:block;font-size:11px;color:var(--t3)}
+
+/* Switch */
+.sa-switch{width:44px;height:24px;border-radius:12px;background:rgba(255,255,255,.1);padding:2px;display:flex;align-items:center;cursor:pointer;transition:background .22s;flex-shrink:0}
+.sa-switch--on{background:var(--sc,var(--salmon))}
+.sa-switch__thumb{width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.sa-switch--on .sa-switch__thumb{transform:translateX(20px)}
+
+/* Buttons */
+.sa-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:var(--rsm);border:none;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .18s;white-space:nowrap}
+.sa-btn--primary{background:linear-gradient(135deg,var(--salmon),var(--salmon-d));color:#fff;box-shadow:0 4px 14px rgba(255,140,105,.3)}
+.sa-btn--primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,140,105,.45)}
+.sa-btn--ghost{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--t2)}
+.sa-btn--ghost:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.sa-btn--red{background:rgba(224,82,82,.12);border:1px solid rgba(224,82,82,.3);color:var(--red)}
+.sa-btn--green{background:rgba(76,175,135,.12);border:1px solid rgba(76,175,135,.3);color:var(--green)}
+.sa-btn--full{width:100%;margin-top:4px}
+
+/* Tabs */
+.sa-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);padding-bottom:0}
+.sa-tab{padding:10px 16px;border:none;background:transparent;color:var(--t2);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.sa-tab:hover{color:var(--text)}
+.sa-tab--active{color:var(--salmon);border-bottom-color:var(--salmon)}
+
+/* Detail KPIs */
+.sa-detail-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.sa-detail-kpi{text-align:center}
+.sa-detail-kpi__val{font-family:'DM Serif Display',serif;font-size:24px;color:var(--text);margin-bottom:4px}
+.sa-detail-kpi__label{font-size:11px;color:var(--t3)}
+.sa-info-rows{display:flex;flex-direction:column;gap:8px}
+.sa-info-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:8px 0;border-bottom:1px solid var(--line)}
+.sa-info-row:last-child{border-bottom:none}
+.sa-info-row span{color:var(--t2)}
+.sa-info-row strong{color:var(--text)}
+
+/* Quotas */
+.sa-quota-row{display:flex;flex-direction:column;gap:6px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.sa-quota-row:last-child{border-bottom:none}
+.sa-quota-label{display:flex;justify-content:space-between;font-size:13px;color:var(--t2)}
+.sa-quota-bar{height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.sa-quota-fill{height:100%;border-radius:3px;transition:width .5s}
+.sa-quota-alert{font-size:11px;color:var(--red);font-weight:600}
+
+/* Audit log */
+.sa-audit-head{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+.sa-audit-row{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center;font-size:12px}
+.sa-audit-row:last-child{border-bottom:none}
+.sa-audit-badge{padding:3px 9px;border-radius:4px;font-size:11px;font-weight:700;font-family:monospace}
+.sa-audit-badge--danger{background:rgba(224,82,82,.12);color:var(--red)}
+.sa-audit-badge--warning{background:rgba(245,158,11,.12);color:var(--amber)}
+.sa-audit-badge--info{background:rgba(91,158,245,.12);color:var(--blue)}
+.sa-audit-user,.sa-audit-tenant{color:var(--t2)}
+.sa-audit-date{color:var(--t3)}
+
+/* Toasts */
+.sa-toasts{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:999}
+.sa-toast{padding:12px 18px;border-radius:var(--rsm);font-size:13px;font-weight:600;animation:fadeUp .25s ease;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.sa-toast--success{background:#2D9B6F;color:#fff}
+.sa-toast--error{background:var(--red);color:#fff}
+.sa-toast--warning{background:var(--amber);color:#fff}
+`;
+
+
+// ══════════════════════════════════════════════════════════════════════
+// BOTTOM NAVIGATION — Mobile
+// ══════════════════════════════════════════════════════════════════════
+function BottomNav({ screen, setScreen }) {
+  const items = [
+    { id: "home",     icon: "⌂",  label: "Accueil" },
+    { id: "caisse",   icon: "🧾", label: "Caisse"  },
+    { id: "stocks",   icon: "📦", label: "Stocks"  },
+    { id: "finances", icon: "💰", label: "Finances"},
+    { id: "donnees",  icon: "⚙️",  label: "Données" },
+  ];
+  return (
+    <nav className="bottom-nav">
+      {items.map(item => (
+        <button key={item.id}
+          className={`bnav-item${screen === item.id ? " bnav-item--active" : ""}`}
+          onClick={() => setScreen(item.id)}>
+          <span className="bnav-item__icon">{item.icon}</span>
+          <span>{item.label}</span>
+          <div className="bnav-item__dot"/>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 export default function App() {
   const [catalogue,    setCatalogue]    = useState(CATALOGUE_INIT);
-  const [screen,       setScreen]       = useState("home");
+  const [screen,       setScreen]       = useState(window.location.pathname === "/super-admin" ? "super-admin" : "home");
   const [panier,       setPanier]       = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [toasts,       setToasts]       = useState([]);
@@ -257,6 +1262,8 @@ export default function App() {
         {screen==="stocks"    && <Stocks    setScreen={setScreen} catalogue={catalogue} setCatalogue={setCatalogue} />}
         {screen==="finances"  && <Finances  setScreen={setScreen} transactions={transactions} kpis={kpis} />}
         {screen==="donnees"   && <MesDonnees setScreen={setScreen} catalogue={catalogue} setCatalogue={setCatalogue} enabledModes={enabledModes} setEnabledModes={setEnabledModes} />}
+        {screen==="super-admin" && <SuperAdmin />}
+        {screen !== "super-admin" && <BottomNav screen={screen} setScreen={setScreen} />}
       </div>
     </>
   );
@@ -4376,4 +5383,130 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Plus J
   .srr__pill{display:none}
   .srr{grid-template-columns:1fr}
 }
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — iPhone / Android (375-430px)
+══════════════════════════════════════════════════════════════ */
+
+/* Bottom nav */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(26,22,18,.08);
+  padding:8px 0 max(env(safe-area-inset-bottom),8px);
+  z-index:100;
+  grid-template-columns:repeat(5,1fr);
+}
+.bnav-item{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:4px 0;background:none;border:none;cursor:pointer;
+  font-family:inherit;font-size:9px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;
+  color:rgba(26,22,18,.4);transition:color .15s;
+}
+.bnav-item--active{color:var(--salmon-d)}
+.bnav-item__icon{font-size:20px;line-height:1}
+.bnav-item__dot{width:4px;height:4px;border-radius:50%;background:var(--salmon);margin-top:1px;opacity:0;transition:opacity .15s}
+.bnav-item--active .bnav-item__dot{opacity:1}
+
+@media(max-width:768px){
+
+  /* Base */
+  .bottom-nav{display:grid}
+  .page{padding:12px 14px max(calc(env(safe-area-inset-bottom) + 80px),90px);gap:12px}
+
+  /* Header home */
+  .home-header{padding:14px 16px;gap:10px;border-radius:14px}
+  .logo-name{font-size:19px}
+  .logo-glyph{font-size:28px}
+  .home-kpis{gap:6px;margin-left:0;width:100%}
+  .kpi-chip{padding:8px 10px;border-radius:10px}
+  .kpi-chip__val{font-size:16px}
+
+  /* Tiles home */
+  .home-tiles{grid-template-columns:1fr 1fr;gap:10px}
+  .home-tiles--5{grid-template-columns:repeat(2,1fr)}
+  .home-tile{padding:16px 14px 14px;border-radius:14px}
+  .home-tile__label{font-size:12px}
+
+  /* Module header */
+  .module-header{padding:10px 14px;border-radius:12px;gap:8px}
+  .back-btn{width:36px;height:36px}
+  .btn-add{padding:8px 14px;font-size:12px}
+
+  /* Caisse */
+  .caisse-layout{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  .caisse-right{max-height:45vh}
+  .articles-caisse{grid-template-columns:repeat(2,1fr);gap:8px}
+  .article-btn{padding:12px 8px;border-radius:12px}
+  .article-btn__nom{font-size:12px}
+  .article-btn__prix{font-size:15px}
+  .univers-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .marques-caisse{grid-template-columns:repeat(2,1fr);gap:8px}
+  .marque-btn{padding:14px 10px}
+
+  /* Panier mobile */
+  .panier-header{padding:10px 14px}
+  .panier-lines{max-height:180px}
+  .panier-line{padding:8px 12px}
+  .panier-total{padding:10px 14px}
+  .pmt-grid{grid-template-columns:repeat(3,1fr);gap:6px}
+  .pmt-btn{padding:10px 6px;font-size:11px}
+
+  /* Stocks */
+  .stk-grid{grid-template-columns:1fr}
+  .stk-art{border-radius:12px;padding:14px}
+  .stk-controls{gap:8px}
+  .stk-numpad{gap:6px}
+  .stk-numpad-btn{height:52px;font-size:18px;border-radius:10px}
+
+  /* Finances */
+  .fin-kpis{grid-template-columns:1fr 1fr;gap:8px}
+  .fin-kpi{padding:14px 12px;border-radius:12px}
+  .fin-kpi__val{font-size:20px}
+  .fin-tx-list{gap:8px}
+  .fin-tx-row{padding:12px;border-radius:10px;gap:8px}
+
+  /* Mes Données */
+  .md-tiles{grid-template-columns:1fr 1fr;gap:10px}
+  .md-tile{padding:16px 12px;border-radius:14px}
+
+  /* POS Sections (Produits) */
+  .ps-toolbar{flex-wrap:wrap;gap:8px}
+  .ps-searchbar{min-width:100%;flex:none}
+  .ps-col-head{grid-template-columns:1fr 80px 80px 28px;padding:6px 10px}
+  .ps-row{grid-template-columns:1fr 80px 80px 28px;padding:0 10px;min-height:44px}
+  .ps-row__stock-val{font-size:14px}
+  .ps-row__price-val{font-size:14px}
+
+  /* Rubriques */
+  .rub-sheet{padding:20px 16px max(calc(env(safe-area-inset-bottom)+24px),24px)}
+
+  /* Modals / Sheets */
+  .modal-overlay{align-items:flex-end}
+  .modal-box{border-radius:20px 20px 0 0;max-height:85vh;padding:20px 16px max(calc(env(safe-area-inset-bottom)+16px),16px)}
+  .modal-row{grid-template-columns:1fr}
+
+  /* Breadcrumb */
+  .breadcrumb__btn{font-size:13px}
+
+  /* Toast */
+  .toast-stack{bottom:calc(env(safe-area-inset-bottom) + 72px);right:12px;left:12px}
+  .toast{min-width:auto;max-width:100%}
+
+  /* Profitabilité */
+  .profita-bar-wrap{padding:14px 16px}
+  .profita-detail{gap:10px}
+}
+
+@media(max-width:390px){
+  .home-tiles{grid-template-columns:1fr 1fr}
+  .articles-caisse{grid-template-columns:repeat(2,1fr)}
+  .pmt-grid{grid-template-columns:repeat(2,1fr)}
+  .fin-kpis{grid-template-columns:1fr}
+  .md-tiles{grid-template-columns:1fr 1fr}
+}
+
 `;
