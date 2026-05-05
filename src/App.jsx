@@ -244,7 +244,7 @@ function SuperAdmin() {
     active: tenants.filter(t => t.status === "active").length,
     trial: tenants.filter(t => t.status === "trial").length,
     suspended: tenants.filter(t => t.status === "suspended").length,
-    mrr: tenants.filter(t => t.status === "active").length * 130,
+    mrr: tenants.reduce((s,t) => s + (t.revenue||0), 0),
   };
 
   const S = {
@@ -362,7 +362,7 @@ function SuperAdmin() {
                 { val:stats.active, label:"Actifs", color:"#4CAF87" },
                 { val:stats.trial, label:"En essai", color:"#F59E0B" },
                 { val:stats.suspended, label:"Suspendus", color:"#E05252" },
-                { val:stats.mrr.toLocaleString("fr-FR")+" €", label:"MRR réel (×130€)", color:"#FF8C69" },
+                { val:stats.mrr.toLocaleString("fr-FR")+" €", label:"MRR estimé", color:"#FF8C69" },
               ].map((k,i) => (
                 <div key={i} style={S.kpi()}>
                   <div style={S.kpiVal(k.color)}>{k.val}</div>
@@ -385,7 +385,7 @@ function SuperAdmin() {
                   <div style={{ display:"flex", gap:12, fontSize:12, color:"#A89F96" }}>
                     <span>{t.users} users</span>
                     <span>{t.products} produits</span>
-                    <span style={{color:t.status==="active"?"#4CAF87":"#9E8E82",fontWeight:700}}>{t.status==="active"?"130 €":"0 €"}</span>
+                    <span>{(t.revenue||0).toLocaleString("fr-FR")} €</span>
                   </div>
                   <span style={S.badge(t.status)}>{t.status === "active" ? "Actif" : t.status === "trial" ? "Essai" : "Suspendu"}</span>
                 </div>
