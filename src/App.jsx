@@ -296,22 +296,24 @@ function SuperAdmin() {
     switchThumb: (on) => ({ width:20, height:20, borderRadius:"50%", background:"#fff", boxShadow:"0 1px 4px rgba(0,0,0,.3)", transform: on ? "translateX(20px)" : "none", transition:"transform .2s" }),
   };
 
-  const MODS = [
-    { id:"pos", label:"Caisse POS", icon:"🧾" },
-    { id:"stock", label:"Stocks", icon:"📦" },
-    { id:"finance", label:"Finances", icon:"💰" },
-    { id:"flux_masse", label:"Flux Masse", icon:"⚖️", desc:"Poids/Volume/Vrac" },
-    { id:"flux_id", label:"Flux Identité", icon:"🔖", desc:"IMEI/Série/Garantie" },
-    { id:"flux_dispo", label:"Flux Disponibilité", icon:"📅", desc:"Location/Réservation" },
-    { id:"flux_seg", label:"Flux Segmentation", icon:"🎨", desc:"Variantes/Tailles" },
-    { id:"loyalty", label:"Fidélité", icon:"⭐" },
-    { id:"booking", label:"Réservations", icon:"🗓️" },
-  ];
+  const [mods, setMods] = React.useState([
+    { id:"pos", key:"CORE_POS", label:"Caisse POS", icon:"🧾", cat:"core", locked:true, active:true, desc_client:"Point de vente tactile.", desc_admin:"Module core indésactivable." },
+    { id:"stock", key:"CORE_STOCK", label:"Stocks", icon:"📦", cat:"core", locked:true, active:true, desc_client:"Gestion des inventaires.", desc_admin:"Module core indésactivable." },
+    { id:"finance", key:"CORE_FINANCE", label:"Finances", icon:"💰", cat:"gestion", locked:false, active:true, desc_client:"Historique et reporting financier.", desc_admin:"CA, marges, charges." },
+    { id:"flux_masse", key:"FLUX_MASSE", label:"Flux Masse", icon:"⚖️", cat:"flux", locked:false, active:false, desc_client:"Gérez vos produits au poids ou en vrac.", desc_admin:"Pour épiceries, caves à vin." },
+    { id:"flux_id", key:"FLUX_IDENTITE", label:"Flux Identité", icon:"🔖", cat:"flux", locked:false, active:false, desc_client:"Tracez chaque produit par IMEI ou série.", desc_admin:"Téléphonie et high-tech." },
+    { id:"flux_dispo", key:"FLUX_DISPO", label:"Flux Disponibilité", icon:"📅", cat:"flux", locked:false, active:false, desc_client:"Gérez locations et réservations.", desc_admin:"Location matériel, coworking." },
+    { id:"flux_seg", key:"FLUX_SEGMENT", label:"Flux Segmentation", icon:"🎨", cat:"flux", locked:false, active:false, desc_client:"Variantes produits taille/couleur.", desc_admin:"Mode, chaussures, textile." },
+    { id:"loyalty", key:"MOD_FIDELITE", label:"Fidélité", icon:"⭐", cat:"marketing", locked:false, active:false, desc_client:"Programme de fidélité et récompenses.", desc_admin:"Phase beta — tester avant déploiement." },
+    { id:"booking", key:"MOD_BOOKING", label:"Réservations", icon:"🗓️", cat:"marketing", locked:false, active:false, desc_client:"Agenda et créneaux clients.", desc_admin:"Intégration calendrier à venir." },
+  ]);
+  const MODS = mods;
 
   const navItems = [
     { id:"dashboard", label:"Dashboard", icon:"◉" },
     { id:"tenants", label:"Tenants", icon:"⬡" },
     { id:"create", label:"Nouveau Tenant", icon:"+" },
+    { id:"modules", label:"Modules", icon:"⊞" },
     { id:"audit", label:"Audit Log", icon:"⊙" },
   ];
 
@@ -615,6 +617,10 @@ function SuperAdmin() {
               </div>
             </div>
           </div>
+        )}
+
+        {view === "modules" && (
+          <ModulesCatalogue mods={mods} setMods={setMods} showToast={showToast} />
         )}
 
         {/* AUDIT */}
@@ -1159,6 +1165,140 @@ function BottomNav({ screen, setScreen }) {
 // ══════════════════════════════════════════════════════════════════════
 // AUTH — Page Login NovaCaisse
 // ══════════════════════════════════════════════════════════════════════
+
+function ModulesCatalogue({ mods, setMods, showToast }) {
+  const [creating, setCreating] = React.useState(false);
+  const [editId, setEditId] = React.useState(null);
+  const [form, setForm] = React.useState({ label:"", icon:"🔧", cat:"flux", locked:false, desc_client:"", desc_admin:"", active:false });
+
+  const CATS = [
+    { id:"core", label:"Core", color:"#FF8C69" },
+    { id:"flux", label:"Flux", color:"#5B9EF5" },
+    { id:"gestion", label:"Gestion", color:"#4CAF87" },
+    { id:"marketing", label:"Marketing", color:"#A78BFA" },
+  ];
+
+  function genKey(label) {
+    return label.toUpperCase().replace(/[^A-Z0-9]/g,"_").replace(/_+/g,"_").replace(/^_|_$/g,"");
+  }
+
+  function saveModule() {
+    if (!form.label) { showToast("Nom requis","error"); return; }
+    const key = genKey(form.label);
+    const id = key.toLowerCase();
+    if (editId) {
+      setMods(p => p.map(m => m.id!==editId?m:{...m,...form,key,id}));
+      showToast("Module mis à jour");
+    } else {
+      setMods(p => [...p,{...form,id,key}]);
+      showToast("Module créé ✓");
+    }
+    setCreating(false); setEditId(null);
+    setForm({ label:"",icon:"🔧",cat:"flux",locked:false,desc_client:"",desc_admin:"",active:false });
+  }
+
+  const S2 = {
+    card: { background:"#161513", border:"1px solid rgba(255,255,255,.07)", borderRadius:14, padding:20, marginBottom:16 },
+    label: { display:"block", fontSize:11, fontWeight:700, color:"#6B635C", textTransform:"uppercase", letterSpacing:".08em", marginBottom:5 },
+    input: { width:"100%", padding:"10px 14px", borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#F5F0EB", fontFamily:"inherit", fontSize:14, outline:"none", boxSizing:"border-box" },
+    textarea: { width:"100%", padding:"10px 14px", borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#F5F0EB", fontFamily:"inherit", fontSize:13, outline:"none", boxSizing:"border-box", resize:"vertical", minHeight:70 },
+    btn: (v) => ({ padding:"9px 16px", borderRadius:8, border:"none", background:v==="primary"?"linear-gradient(135deg,#FF8C69,#E8704A)":"rgba(255,255,255,.05)", color:v==="primary"?"#fff":"#A89F96", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer", border:v!=="primary"?"1px solid rgba(255,255,255,.1)":"none" }),
+    badge: (cat) => { const c={core:"#FF8C69",flux:"#5B9EF5",gestion:"#4CAF87",marketing:"#A78BFA"}[cat]||"#9E8E82"; return { padding:"2px 8px", borderRadius:100, fontSize:10, fontWeight:800, textTransform:"uppercase", color:c, background:c+"18", border:"1px solid "+c+"30" }; },
+    key: { fontFamily:"monospace", fontSize:10, color:"#6B635C", background:"rgba(255,255,255,.04)", padding:"2px 8px", borderRadius:4, border:"1px solid rgba(255,255,255,.06)" },
+  };
+
+  const grouped = CATS.map(cat => ({ ...cat, items:mods.filter(m=>m.cat===cat.id) })).filter(g=>g.items.length>0);
+
+  return (
+    <div>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:24 }}>
+        <div>
+          <div style={{ fontFamily:"serif", fontSize:28, marginBottom:4 }}>Catalogue de Modules</div>
+          <div style={{ fontSize:13, color:"#6B635C" }}>{mods.length} modules · {mods.filter(m=>m.active).length} actifs par défaut</div>
+        </div>
+        <button style={S2.btn("primary")} onClick={()=>{ setCreating(true); setEditId(null); }}>+ Nouveau Module</button>
+      </div>
+
+      {creating && (
+        <div style={{ ...S2.card, borderColor:"rgba(255,140,105,.3)", marginBottom:20 }}>
+          <div style={{ fontSize:15, fontWeight:700, color:"#FF8C69", marginBottom:16 }}>{editId?"✏️ Modifier":"✨ Nouveau module"}</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+            <div>
+              <div style={{ marginBottom:12 }}>
+                <label style={S2.label}>Nom du module</label>
+                <input style={S2.input} placeholder="ex: Fidélité Plus" value={form.label} onChange={e=>setForm(p=>({...p,label:e.target.value}))} autoFocus/>
+                {form.label && <div style={{ marginTop:5, ...S2.key, display:"inline-block" }}>Clé : {genKey(form.label)}</div>}
+              </div>
+              <div style={{ marginBottom:12 }}>
+                <label style={S2.label}>Icône</label>
+                <input style={{ ...S2.input, width:80 }} value={form.icon} onChange={e=>setForm(p=>({...p,icon:e.target.value}))}/>
+              </div>
+              <div style={{ marginBottom:12 }}>
+                <label style={S2.label}>Catégorie</label>
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {CATS.map(cat => { const c={core:"#FF8C69",flux:"#5B9EF5",gestion:"#4CAF87",marketing:"#A78BFA"}[cat.id]; return (
+                    <button key={cat.id} style={{ padding:"6px 12px", borderRadius:6, border:`1px solid ${form.cat===cat.id?c:"rgba(255,255,255,.1)"}`, background:form.cat===cat.id?c+"18":"transparent", color:form.cat===cat.id?c:"#A89F96", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setForm(p=>({...p,cat:cat.id}))}>{cat.label}</button>
+                  ); })}
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:16 }}>
+                <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer", fontSize:13, color:"#A89F96" }}>
+                  <input type="checkbox" checked={form.locked} onChange={e=>setForm(p=>({...p,locked:e.target.checked}))}/>🔒 Indésactivable
+                </label>
+                <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer", fontSize:13, color:"#A89F96" }}>
+                  <input type="checkbox" checked={form.active} onChange={e=>setForm(p=>({...p,active:e.target.checked}))}/>✅ Défaut
+                </label>
+              </div>
+            </div>
+            <div>
+              <div style={{ marginBottom:12 }}>
+                <label style={S2.label}>📣 Description client</label>
+                <textarea style={S2.textarea} placeholder="Ce que voit le patron…" value={form.desc_client} onChange={e=>setForm(p=>({...p,desc_client:e.target.value}))}/>
+              </div>
+              <div style={{ marginBottom:12 }}>
+                <label style={S2.label}>🔧 Note admin</label>
+                <textarea style={S2.textarea} placeholder="Note interne…" value={form.desc_admin} onChange={e=>setForm(p=>({...p,desc_admin:e.target.value}))}/>
+              </div>
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:8 }}>
+            <button style={S2.btn("ghost")} onClick={()=>{ setCreating(false); setEditId(null); }}>Annuler</button>
+            <button style={S2.btn("primary")} onClick={saveModule}>{editId?"Enregistrer":"Créer"} →</button>
+          </div>
+        </div>
+      )}
+
+      {grouped.map(group => (
+        <div key={group.id} style={S2.card}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+            <span style={S2.badge(group.id)}>{group.label}</span>
+            <span style={{ fontSize:12, color:"#6B635C" }}>{group.items.length} module{group.items.length>1?"s":""}</span>
+          </div>
+          {group.items.map(mod => (
+            <div key={mod.id} style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"12px 0", borderBottom:"1px solid rgba(255,255,255,.05)" }}>
+              <div style={{ fontSize:28, width:44, height:44, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,.05)", borderRadius:10, flexShrink:0 }}>{mod.icon}</div>
+              <div style={{ flex:1 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
+                  <span style={{ fontSize:14, fontWeight:700 }}>{mod.label}</span>
+                  <span style={S2.key}>{mod.key||mod.id.toUpperCase()}</span>
+                  {mod.locked && <span style={{ fontSize:10, color:"#F59E0B", padding:"2px 7px", borderRadius:100, background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.2)", fontWeight:700 }}>🔒 Locked</span>}
+                  {mod.active && <span style={{ fontSize:10, color:"#4CAF87", padding:"2px 7px", borderRadius:100, background:"rgba(76,175,135,.1)", border:"1px solid rgba(76,175,135,.2)", fontWeight:700 }}>✅ Défaut</span>}
+                </div>
+                {mod.desc_client && <div style={{ fontSize:12, color:"#A89F96", marginBottom:2 }}><span style={{ color:"#6B635C" }}>Client : </span>{mod.desc_client}</div>}
+                {mod.desc_admin && <div style={{ fontSize:12, color:"#F59E0B" }}><span style={{ color:"#6B635C" }}>Admin : </span>{mod.desc_admin}</div>}
+              </div>
+              <div style={{ display:"flex", gap:6 }}>
+                <button style={{ padding:"4px 10px", borderRadius:6, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:11, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>{ setForm({label:mod.label,icon:mod.icon,cat:mod.cat,locked:mod.locked,desc_client:mod.desc_client||"",desc_admin:mod.desc_admin||"",active:mod.active}); setEditId(mod.id); setCreating(true); }}>✏️</button>
+                {!mod.locked && <button style={{ padding:"4px 10px", borderRadius:6, border:"1px solid rgba(224,82,82,.2)", background:"transparent", color:"#E05252", fontSize:11, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setMods(p=>p.filter(m=>m.id!==mod.id))}>🗑️</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
