@@ -296,7 +296,7 @@ function SuperAdmin() {
     switchThumb: (on) => ({ width:20, height:20, borderRadius:"50%", background:"#fff", boxShadow:"0 1px 4px rgba(0,0,0,.3)", transform: on ? "translateX(20px)" : "none", transition:"transform .2s" }),
   };
 
-  const [mods, setMods] = React.useState([
+  const [mods, setMods] = useState([
     { id:"pos", key:"CORE_POS", label:"Caisse POS", icon:"🧾", cat:"core", locked:true, active:true, desc_client:"Point de vente tactile.", desc_admin:"Module core indésactivable." },
     { id:"stock", key:"CORE_STOCK", label:"Stocks", icon:"📦", cat:"core", locked:true, active:true, desc_client:"Gestion des inventaires.", desc_admin:"Module core indésactivable." },
     { id:"finance", key:"CORE_FINANCE", label:"Finances", icon:"💰", cat:"gestion", locked:false, active:true, desc_client:"Historique et reporting financier.", desc_admin:"CA, marges, charges." },
@@ -1167,9 +1167,9 @@ function BottomNav({ screen, setScreen }) {
 // ══════════════════════════════════════════════════════════════════════
 
 function ModulesCatalogue({ mods, setMods, showToast }) {
-  const [creating, setCreating] = React.useState(false);
-  const [editId, setEditId] = React.useState(null);
-  const [form, setForm] = React.useState({ label:"", icon:"🔧", cat:"flux", locked:false, desc_client:"", desc_admin:"", active:false });
+  const [creating, setCreating] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ label:"", icon:"🔧", cat:"flux", locked:false, desc_client:"", desc_admin:"", active:false });
 
   const CATS = [
     { id:"core", label:"Core", color:"#FF8C69" },
