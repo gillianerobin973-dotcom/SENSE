@@ -1171,323 +1171,226 @@ function BottomNav({ screen, setScreen }) {
 // ══════════════════════════════════════════════════════════════════════
 
 
-function SecurityTree() {
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [panelTarget, setPanelTarget] = useState("general");
-  const [killed, setKilled] = useState(false);
-  const [scenario, setScenario] = useState(null);
-  const [scenarioSteps, setScenarioSteps] = useState([]);
 
-  const scenarios = {
-    finance: {
-      label:"Incident Mineur Finance",
-      color:"#4CAF87",
-      steps:[
-        "1. L'Agent MRR repère un décalage de 130 €",
-        "2. Le Tribunal valide la demande de correction",
-        "3. L'Agent Réparateur corrige la base de données",
-        "4. Le Général confirme le retour au Vert ✅"
-      ]
-    },
-    saboteur: {
-      label:"Attaque du Saboteur",
-      color:"#F59E0B",
-      steps:[
-        "1. L'Agent Saboteur injecte un faux virus dans le système",
-        "2. L'arbre clignote en Orange 🟠 — alerte déclenchée",
-        "3. Le Général Guard Auto intercepte et bloque l'attaque",
-        "4. Retour à la normale — menace neutralisée ✅"
-      ]
-    },
-    alerte: {
-      label:"Alerte Majeure Humaine",
-      color:"#E05252",
-      steps:[
-        "1. Tentative d'anomalie critique détectée",
-        "2. Le Tribunal refuse de trancher seul",
-        "3. Le système passe au Rouge 🔴",
-        "4. Intervention de l'Admin humain requise ⚠️"
-      ]
-    }
+function SecurityTree() {
+  const [killed, setKilled] = useState(false);
+  const [alert, setAlert] = useState("green");
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelCtx, setPanelCtx] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [manualMode, setManualMode] = useState(false);
+  const [chatMsg, setChatMsg] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
+
+  const MRR = 260;
+  const alertColor = { green:"#4CAF87", orange:"#F59E0B", red:"#E05252" }[alert];
+  const alertLabel = { green:"Seve Saine - Systeme Operationnel", orange:"IA Active - Resolution en cours", red:"ALERTE MAJEURE - Intervention Humaine" }[alert];
+
+  const PERSONAS = {
+    general:   { name:"General Guard Auto",      avatar:"shield", role:"Commandant Central",          color:"#FF8C69" },
+    finance:   { name:"Commandant Finance-001",  avatar:"money",  role:"Surveillance MRR et Seve",    color:"#4CAF87" },
+    tribunal:  { name:"Juge Tribunal-Alpha",     avatar:"judge",  role:"Filtre Arbitrage Supreme",    color:"#A78BFA" },
+    saboteur:  { name:"Agent Saboteur",          avatar:"robot",  role:"Chaos Monkey - Tests",        color:"#F59E0B" },
+    reparateur:{ name:"Agent Reparateur",        avatar:"wrench", role:"Helper Auto - Correction",    color:"#5B9EF5" },
   };
 
+  const CHAT = {
+    general:    ["Chef ! Tout est sous controle. Les 3 tenants actifs sont bien isoles par RLS.", "Je surveille en permanence les flux de seve entre les branches.", "Aucune anomalie detectee. Statut : Vert."],
+    finance:    ["Chef ! Le MRR est a 260 EUR ce mois-ci. 2 tenants actifs x 130 EUR.", "Shop In Cafe et TechRepair Pro sont les sources de seve financiere.", "Tout est synchronise. Aucun decalage detecte."],
+    tribunal:   ["Je n arbitre que sur ordre. Aucun conflit actif.", "Mon role : valider ou bloquer les decisions critiques.", "Je refuse d agir seul en cas de crise - l humain prime."],
+    saboteur:   ["Je teste les defenses toutes les heures. Derniere tentative : bloquee.", "Mon role : trouver les failles AVANT les vrais attaquants.", "Chaos Monkey v0.1 - En veille."],
+    reparateur: ["Pret a corriger en 3 secondes si le General me donne l ordre.", "Derniere reparation : synchronisation MRR forcee avec succes.", "Mode veille active. J attends les anomalies."],
+  };
+
+  function openPanel(ctx) {
+    if (killed) return;
+    setPanelCtx(ctx);
+    setPanelOpen(true);
+    setChatHistory([{ from:"agent", text: CHAT[ctx][0] }]);
+  }
+
+  function sendChat() {
+    if (!chatMsg.trim()) return;
+    const r = CHAT[panelCtx] || [];
+    const reply = r[Math.floor(Math.random() * r.length)];
+    setChatHistory(p => [...p, { from:"human", text:chatMsg }, { from:"agent", text:reply }]);
+    setChatMsg("");
+  }
+
   function runScenario(key) {
-    setScenario(key);
-    setScenarioSteps([]);
-    const steps = scenarios[key].steps;
-    steps.forEach((step, i) => {
+    if (killed) return;
+    setLogs([]);
+    const sc = {
+      mrr: { alert:"orange", steps:["[16:00] Agent Finance-001 scanne la branche Shop In Cafe...", "[16:02] Anomalie : module actif mais seve non synchronisee.", "[16:03] Pole Tribunal saisi - analyse des droits...", "[16:04] Agent Reparateur : synchronisation forcee reussie.", "[16:05] General Guard Auto : Statut de la seve - RAS / Vert."] },
+      saboteur: { alert:"orange", steps:["[16:10] Agent Saboteur : tentative intrusion RLS entre branches...", "[16:10] Arbre en alerte orange - defense activee !", "[16:11] General Guard Auto intercepte et bloque l attaque.", "[16:12] Tribunal consigne la tentative dans l audit log.", "[16:12] Menace neutralisee. Retour au vert."] },
+      alerte: { alert:"red", steps:["[16:20] FAILLE CRITIQUE simulee dans le systeme RLS...", "[16:20] Arbre en ALERTE ROUGE - toutes les IA figees !", "[16:21] Pole Tribunal : refuse d arbitrer seul.", "[16:21] Systeme fige - EN ATTENTE DE L ADMIN HUMAIN.", "[16:21] Gilliane Robin ou Collaboratrice : intervention requise."] },
+    }[key];
+    setAlert(sc.alert);
+    sc.steps.forEach((step, i) => {
       setTimeout(() => {
-        setScenarioSteps(p => [...p, step]);
+        setLogs(p => [...p, step]);
+        if (i === sc.steps.length - 1 && key !== "alerte") {
+          setTimeout(() => setAlert("green"), 2500);
+        }
       }, i * 900);
     });
   }
 
-  function openPanel(target) {
-    setPanelTarget(target);
-    setPanelOpen(true);
-    setScenario(null);
-    setScenarioSteps([]);
-  }
-
-  const S = {
-    root: { position:"relative", opacity: killed ? .4 : 1, transition:"opacity .5s", filter: killed ? "grayscale(1)" : "none" },
-    header: { display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:32 },
-    title: { fontFamily:"serif", fontSize:28, color:"#F5F0EB", marginBottom:6 },
-    sub: { fontSize:13, color:"#6B635C" },
-    killBtn: {
-      padding:"10px 18px", borderRadius:10,
-      background: killed ? "rgba(76,175,135,.15)" : "rgba(224,82,82,.15)",
-      border: `1.5px solid ${killed?"rgba(76,175,135,.4)":"rgba(224,82,82,.4)"}`,
-      color: killed ? "#4CAF87" : "#E05252",
-      fontFamily:"inherit", fontSize:12, fontWeight:800, cursor:"pointer",
-      animation: killed ? "none" : "pulse 2s infinite",
-      letterSpacing:".02em",
-    },
-    tree: { display:"flex", flexDirection:"column", alignItems:"center", gap:0 },
-    connector: { width:2, height:36, background:"rgba(255,255,255,.1)" },
-    hConnector: { height:2, background:"rgba(255,255,255,.1)" },
-
-    // Tribunal
-    tribunal: {
-      border:"2px solid rgba(168,139,250,.3)", borderRadius:14,
-      padding:"14px 28px", textAlign:"center",
-      background:"rgba(168,139,250,.04)", minWidth:280,
-      position:"relative",
-    },
-    tribunalLabel: { fontSize:10, color:"rgba(168,139,250,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 },
-    tribunalTitle: { fontSize:15, fontWeight:700, color:"rgba(168,139,250,.8)" },
-
-    // Niveau agents satellites + général
-    midRow: { display:"flex", alignItems:"center", gap:0, width:"100%", maxWidth:860, justifyContent:"center" },
-    satellite: (color) => ({
-      flex:1, maxWidth:180,
-      background:`rgba(${color},.06)`, border:`1px solid rgba(${color},.2)`,
-      borderRadius:12, padding:"14px 12px", textAlign:"center", cursor:"pointer",
-      transition:"all .2s",
-    }),
-    satIcon: { fontSize:22, marginBottom:6 },
-    satName: { fontSize:12, fontWeight:700, color:"#F5F0EB", marginBottom:4 },
-    satBadge: { fontSize:10, padding:"2px 8px", borderRadius:100, background:"rgba(255,255,255,.06)", color:"rgba(255,255,255,.3)", border:"1px solid rgba(255,255,255,.08)" },
-
-    // Général
-    general: {
-      background:"linear-gradient(135deg,rgba(255,140,105,.12),rgba(232,112,74,.06))",
-      border:"1.5px solid rgba(255,140,105,.4)", borderRadius:16,
-      padding:"20px 32px", textAlign:"center", minWidth:260,
-      boxShadow:"0 8px 32px rgba(255,140,105,.1)",
-      cursor:"pointer", transition:"all .2s", mx:24,
-    },
-    generalTitle: { fontSize:17, fontWeight:800, color:"#F5F0EB", marginBottom:6 },
-    badge: (color, bg) => ({
-      display:"inline-flex", alignItems:"center", gap:5,
-      padding:"3px 10px", borderRadius:100,
-      background:bg, border:`1px solid ${color}`,
-      color:color, fontSize:10, fontWeight:700,
-    }),
-    dot: (color) => ({ width:6, height:6, borderRadius:"50%", background:color, boxShadow:`0 0 6px ${color}` }),
-
-    // Pôles
-    poles: { display:"flex", gap:12, justifyContent:"center", width:"100%", maxWidth:860 },
-    pole: (active) => ({
-      flex:1, borderRadius:12, padding:"14px 10px", textAlign:"center",
-      background: active ? "rgba(76,175,135,.08)" : "rgba(255,255,255,.02)",
-      border: active ? "1.5px solid rgba(76,175,135,.3)" : "1px solid rgba(255,255,255,.07)",
-      cursor: active ? "pointer" : "default",
-      transition:"all .2s", position:"relative", opacity: active ? 1 : .6,
-    }),
-    poleLock: { position:"absolute", top:8, right:8, fontSize:11, color:"rgba(255,255,255,.2)" },
-    poleIcon: { fontSize:22, marginBottom:6 },
-    poleName: (active) => ({ fontSize:12, fontWeight:700, color: active ? "#4CAF87" : "rgba(255,255,255,.5)", marginBottom:4 }),
-    poleCount: (active) => ({
-      display:"inline-block", fontSize:10, fontWeight:700,
-      color: active ? "#4CAF87" : "rgba(255,255,255,.2)",
-      background: active ? "rgba(76,175,135,.1)" : "rgba(255,255,255,.04)",
-      borderRadius:100, padding:"2px 8px",
-      border: active ? "1px solid rgba(76,175,135,.2)" : "1px solid rgba(255,255,255,.06)",
-    }),
-    agentBadge: {
-      display:"block", marginTop:6, fontSize:9, color:"#4CAF87",
-      background:"rgba(76,175,135,.08)", borderRadius:4, padding:"3px 6px",
-      border:"1px solid rgba(76,175,135,.15)",
-    },
-
-    // Kill overlay
-    killOverlay: {
-      position:"fixed", top:0, left:0, right:0, bottom:0,
-      background:"rgba(0,0,0,.85)", zIndex:9990,
-      display:"flex", alignItems:"center", justifyContent:"center",
-      flexDirection:"column", gap:20,
-    },
-    killMsg: {
-      fontSize:22, fontWeight:900, color:"#E05252", textAlign:"center",
-      letterSpacing:".06em", lineHeight:1.4,
-      textShadow:"0 0 30px rgba(224,82,82,.5)",
-    },
-
-    // Panel
-    overlay: { position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.5)", zIndex:998, backdropFilter:"blur(4px)" },
-    panel: { position:"fixed", top:0, right:0, bottom:0, width:400, background:"#161513", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"28px 24px", boxShadow:"-8px 0 40px rgba(0,0,0,.4)", overflowY:"auto", display:"flex", flexDirection:"column", gap:16 },
-    closeBtn: { width:30, height:30, borderRadius:7, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:14, cursor:"pointer" },
-    scenBtn: (color) => ({ width:"100%", padding:"12px 16px", borderRadius:10, border:`1px solid ${color}30`, background:`${color}10`, color:color, fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer", textAlign:"left", marginBottom:6 }),
-    stepItem: (i) => ({ padding:"10px 14px", borderRadius:8, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.06)", fontSize:13, color:"#A89F96", animation:"fadeUp .3s ease both", animationDelay:`${i*.1}s` }),
-  };
-
-  const poles = [
-    { icon:"🧾", name:"Pôle Caisse",   count:"0/200", active:false },
-    { icon:"📦", name:"Pôle Stocks",   count:"0/200", active:false },
-    { icon:"👥", name:"Pôle RH",       count:"0/200", active:false },
-    { icon:"💰", name:"Pôle Finance",  count:"1/200", active:true,  agent:"Agent 001 : Surveillance MRR (130€/mois)" },
-  ];
+  const persona = panelCtx ? PERSONAS[panelCtx] : null;
+  const avatarMap = { shield:"🛡️", money:"💰", judge:"⚖️", robot:"🤖", wrench:"🔧" };
 
   return (
     <div>
-      <style>{`@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(224,82,82,.4)}50%{box-shadow:0 0 0 8px rgba(224,82,82,0)}} @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`}</style>
+      <style>{"@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}} .blink{animation:blink 1.2s infinite} .fadeUp{animation:fadeUp .3s ease both}"}</style>
 
-      {/* Header */}
-      <div style={S.header}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
         <div>
-          <div style={S.title}>🛡️ Sécurité — Arbre Logique</div>
-          <div style={S.sub}>Supervision NovaCaisse · {killed ? "🔴 SYSTÈME FIGÉ" : "🟢 Opérationnel"}</div>
+          <div style={{ fontFamily:"serif", fontSize:26, color:"#F5F0EB", marginBottom:8 }}>Ecosysteme IA - L Arbre</div>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"6px 14px", borderRadius:100, background:alertColor+"15", border:"1px solid "+alertColor+"40", color:alertColor, fontSize:12, fontWeight:700 }} className={alert!=="green"?"blink":""}>
+            {alert==="green"?"🟢":"alert==="orange"?"🟠":"🔴"} {alertLabel}
+          </div>
         </div>
-        <button style={S.killBtn} onClick={() => setKilled(k => !k)}>
-          {killed ? "▶ RÉACTIVER LE SYSTÈME" : "🔴 ARRÊT D'URGENCE — KILL SWITCH"}
+        <button onClick={() => { setKilled(k => !k); }} style={{ padding:"9px 16px", borderRadius:10, border:"1.5px solid "+(killed?"rgba(76,175,135,.4)":"rgba(224,82,82,.4)"), background:killed?"rgba(76,175,135,.1)":"rgba(224,82,82,.1)", color:killed?"#4CAF87":"#E05252", fontFamily:"inherit", fontSize:12, fontWeight:800, cursor:"pointer" }}>
+          {killed ? "REACTIVER L ARBRE" : "KILL SWITCH - ARRET TOTAL"}
         </button>
       </div>
 
-      {/* Kill overlay */}
-      {killed && (
-        <div style={S.killOverlay} onClick={() => setKilled(false)}>
-          <div style={{ fontSize:48 }}>🔴</div>
-          <div style={S.killMsg}>SYSTÈME FIGÉ PAR LE CRÉATEUR HUMAIN.<br/>TOUTES LES IA SONT DÉSACTIVÉES.</div>
-          <div style={{ fontSize:13, color:"rgba(255,255,255,.3)" }}>Cliquer pour réactiver</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:24 }}>
+        <div style={{ background:"rgba(76,175,135,.04)", border:"1px solid rgba(76,175,135,.12)", borderRadius:12, padding:"14px 16px" }}>
+          <div style={{ fontSize:11, fontWeight:800, color:"#4CAF87", textTransform:"uppercase", marginBottom:6 }}>Monde Reel</div>
+          <div style={{ fontSize:22, fontWeight:900, color:"#4CAF87" }}>{MRR} EUR</div>
+          <div style={{ fontSize:11, color:"rgba(76,175,135,.6)" }}>MRR Production - 2 actifs x 130 EUR</div>
         </div>
-      )}
+        <div style={{ background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.12)", borderRadius:12, padding:"14px 16px" }}>
+          <div style={{ fontSize:11, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", marginBottom:6 }}>Labo Crash-Test</div>
+          <div style={{ fontSize:12, color:"rgba(167,139,250,.7)", lineHeight:1.5 }}>Zone simulation - zero impact sur vrais clients</div>
+        </div>
+        <div style={{ background:"rgba(91,158,245,.04)", border:"1px solid rgba(91,158,245,.12)", borderRadius:12, padding:"14px 16px" }}>
+          <div style={{ fontSize:11, fontWeight:800, color:"#5B9EF5", textTransform:"uppercase", marginBottom:6 }}>Radar IA</div>
+          <div style={{ fontSize:11, color:"rgba(91,158,245,.7)", lineHeight:1.5 }}>Prochain test Chaos Monkey : Intrusion RLS dans ~10 min</div>
+        </div>
+      </div>
 
-      <div style={S.root}>
-        <div style={S.tree}>
+      <div style={killed ? { opacity:.3, filter:"grayscale(1)", pointerEvents:"none", transition:"all .5s" } : {}}>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
 
-          {/* TRIBUNAL */}
-          <div style={S.tribunal}>
-            <div style={S.tribunalLabel}>Filtre d'Arbitrage · Niveau Suprême</div>
-            <div style={S.tribunalTitle}>⚖️ Pôle Tribunal</div>
-            <div style={{ fontSize:10, color:"rgba(168,139,250,.4)", marginTop:4 }}>🔒 Accès restreint</div>
-          </div>
-          <div style={S.connector}/>
-
-          {/* LIGNE SATELLITES + GÉNÉRAL */}
-          <div style={{ display:"flex", alignItems:"center", gap:16, width:"100%", maxWidth:860, justifyContent:"center" }}>
-
-            {/* Saboteur */}
-            <div style={{ flex:1, maxWidth:190, background:"rgba(245,158,11,.06)", border:"1px solid rgba(245,158,11,.2)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
-              <div style={{ fontSize:22, marginBottom:6 }}>🤖</div>
-              <div style={{ fontSize:12, fontWeight:700, color:"#F5F0EB", marginBottom:4 }}>Agent Saboteur</div>
-              <div style={{ fontSize:10, color:"rgba(245,158,11,.6)", marginBottom:6 }}>Chaos Monkey</div>
-              <div style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"rgba(245,158,11,.08)", color:"rgba(245,158,11,.5)", border:"1px solid rgba(245,158,11,.15)", display:"inline-block" }}>En veille</div>
-            </div>
-
-            <div style={{ width:24, height:2, background:"rgba(255,255,255,.1)" }}/>
-
-            {/* Général */}
-            <div style={S.general} onClick={() => openPanel("general")}>
-              <div style={{ fontSize:10, color:"rgba(255,140,105,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>Commandant Central</div>
-              <div style={S.generalTitle}>🛡️ Général Guard Auto</div>
-              <div style={{ display:"flex", justifyContent:"center", gap:8, marginTop:8, flexWrap:"wrap" }}>
-                <div style={S.badge("rgba(76,175,135,.9)","rgba(76,175,135,.1)")}>
-                  <div style={S.dot("#4CAF87")}/>Actif · Bases posées
-                </div>
-              </div>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,.2)", marginTop:8 }}>↗ Cliquer pour configurer</div>
-            </div>
-
-            <div style={{ width:24, height:2, background:"rgba(255,255,255,.1)" }}/>
-
-            {/* Réparateur */}
-            <div style={{ flex:1, maxWidth:190, background:"rgba(91,158,245,.06)", border:"1px solid rgba(91,158,245,.2)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
-              <div style={{ fontSize:22, marginBottom:6 }}>🔧</div>
-              <div style={{ fontSize:12, fontWeight:700, color:"#F5F0EB", marginBottom:4 }}>Agent Réparateur</div>
-              <div style={{ fontSize:10, color:"rgba(91,158,245,.6)", marginBottom:6 }}>Helper Auto</div>
-              <div style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"rgba(91,158,245,.08)", color:"rgba(91,158,245,.5)", border:"1px solid rgba(91,158,245,.15)", display:"inline-block" }}>En veille</div>
-            </div>
+          <div style={{ background:"rgba(167,139,250,.08)", border:"1.5px solid rgba(167,139,250,.3)", borderRadius:14, padding:"16px 28px", textAlign:"center", minWidth:300, cursor:"pointer" }} onClick={() => openPanel("tribunal")}>
+            <div style={{ fontSize:10, color:"rgba(167,139,250,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>La Racine - Controle Supreme</div>
+            <div style={{ fontSize:16, fontWeight:800, color:"#F5F0EB", marginBottom:6 }}>Quartier General Humain</div>
+            <div style={{ fontSize:11, color:"rgba(167,139,250,.7)" }}>Gilliane Robin et Collaboratrice</div>
+            <div style={{ marginTop:8, display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(167,139,250,.1)", border:"1px solid rgba(167,139,250,.2)", color:"#A78BFA", fontSize:10, fontWeight:700 }}>Pole Tribunal - Filtre Arbitrage</div>
           </div>
 
-          <div style={S.connector}/>
+          <div style={{ width:2, height:32, background:"rgba(255,255,255,.1)" }}/>
 
-          {/* Ligne branches vers pôles */}
+          <div style={{ background:alert!=="green"?"rgba(255,140,105,.15)":"rgba(255,140,105,.08)", border:"1.5px solid rgba(255,140,105,.4)", borderRadius:16, padding:"18px 32px", textAlign:"center", minWidth:280, cursor:"pointer", transition:"all .3s" }} onClick={() => openPanel("general")}>
+            <div style={{ fontSize:10, color:"rgba(255,140,105,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>Le Tronc - NovaCaisse Core</div>
+            <div style={{ fontSize:17, fontWeight:800, color:"#F5F0EB", marginBottom:8 }}>General Guard Auto</div>
+            <div style={{ display:"flex", justifyContent:"center", gap:8, flexWrap:"wrap", marginBottom:8 }}>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(76,175,135,.1)", border:"1px solid rgba(76,175,135,.2)", color:"#4CAF87", fontSize:10, fontWeight:700 }}>Actif</div>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.2)", color:"#F59E0B", fontSize:10, fontWeight:700, cursor:"pointer" }} onClick={e=>{e.stopPropagation();openPanel("saboteur")}}>Saboteur</div>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(91,158,245,.1)", border:"1px solid rgba(91,158,245,.2)", color:"#5B9EF5", fontSize:10, fontWeight:700, cursor:"pointer" }} onClick={e=>{e.stopPropagation();openPanel("reparateur")}}>Reparateur</div>
+            </div>
+            {alert==="orange" && <div style={{ marginTop:6, padding:"6px 10px", borderRadius:8, background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.2)", color:"#F59E0B", fontSize:11, fontWeight:700, cursor:"pointer" }} className="blink" onClick={e=>{e.stopPropagation();openPanel("general")}}>L IA resout un defaut... [Inspecter]</div>}
+            {alert==="red" && <div style={{ marginTop:6, padding:"6px 10px", borderRadius:8, background:"rgba(224,82,82,.1)", border:"1px solid rgba(224,82,82,.2)", color:"#E05252", fontSize:11, fontWeight:700, cursor:"pointer" }} className="blink" onClick={e=>{e.stopPropagation();openPanel("tribunal")}}>BLOCAGE CRITIQUE ! [Prendre le controle]</div>}
+          </div>
+
+          <div style={{ width:2, height:32, background:"rgba(255,255,255,.1)" }}/>
           <div style={{ width:"75%", maxWidth:860, position:"relative", height:24 }}>
             <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"rgba(255,255,255,.1)" }}/>
-            {[0,1,2,3].map(i => (
-              <div key={i} style={{ position:"absolute", top:0, left:`${12.5+i*25}%`, width:2, height:24, background:"rgba(255,255,255,.1)", transform:"translateX(-50%)" }}/>
-            ))}
+            {[0,1,2,3].map(i=><div key={i} style={{ position:"absolute", top:0, left:(12.5+i*25)+"%", width:2, height:24, background:"rgba(255,255,255,.1)", transform:"translateX(-50%)" }}/>)}
           </div>
           <div style={{ height:8 }}/>
 
-          {/* PÔLES */}
-          <div style={S.poles}>
-            {poles.map((p,i) => (
-              <div key={i} style={S.pole(p.active)} onClick={() => p.active && openPanel("finance")}>
-                {!p.active && <div style={S.poleLock}>🔒</div>}
-                <div style={S.poleIcon}>{p.icon}</div>
-                <div style={S.poleName(p.active)}>{p.name}</div>
-                <div style={S.poleCount(p.active)}>{p.count} agents</div>
-                {p.agent && <div style={S.agentBadge}>{p.agent}</div>}
-                {!p.active && <div style={{ display:"block", marginTop:6, fontSize:9, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".06em" }}>Verrouillé</div>}
+          <div style={{ display:"flex", gap:10, width:"100%", maxWidth:860 }}>
+            {[
+              { id:"general",  icon:"🧾", name:"Pole Caisse",   count:"0/200", active:false, color:"#9E8E82" },
+              { id:"general",  icon:"📦", name:"Pole Stocks",   count:"0/200", active:false, color:"#9E8E82" },
+              { id:"general",  icon:"👥", name:"Pole RH",       count:"0/200", active:false, color:"#9E8E82" },
+              { id:"finance",  icon:"💰", name:"Pole Finance",  count:"1/200", active:true,  color:"#4CAF87", agent:"Agent 001 : Surveillance MRR" },
+            ].map((p,i) => (
+              <div key={i} style={{ flex:1, borderRadius:12, padding:"14px 10px", textAlign:"center", background:p.active?"rgba(76,175,135,.08)":"rgba(255,255,255,.02)", border:p.active?"1.5px solid rgba(76,175,135,.3)":"1px solid rgba(255,255,255,.06)", cursor:p.active?"pointer":"default", position:"relative", opacity:p.active?1:.55, transition:"all .2s" }} onClick={() => p.active && openPanel(p.id)}>
+                {!p.active && <div style={{ position:"absolute", top:8, right:8, fontSize:10, color:"rgba(255,255,255,.2)" }}>🔒</div>}
+                <div style={{ fontSize:22, marginBottom:6 }}>{p.icon}</div>
+                <div style={{ fontSize:12, fontWeight:700, color:p.active?"#4CAF87":"rgba(255,255,255,.4)", marginBottom:4 }}>{p.name}</div>
+                <div style={{ fontSize:10, color:p.active?"rgba(76,175,135,.6)":"rgba(255,255,255,.2)", display:"inline-block", padding:"2px 8px", borderRadius:100, background:p.active?"rgba(76,175,135,.1)":"rgba(255,255,255,.04)", border:p.active?"1px solid rgba(76,175,135,.2)":"1px solid rgba(255,255,255,.06)" }}>{p.count} agents</div>
+                {p.agent && <div style={{ display:"block", marginTop:6, fontSize:10, color:"#4CAF87", background:"rgba(76,175,135,.08)", borderRadius:4, padding:"3px 6px", border:"1px solid rgba(76,175,135,.15)" }}>{p.agent}</div>}
+                {!p.active && <div style={{ display:"block", marginTop:6, fontSize:9, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".06em" }}>Verrouille</div>}
               </div>
             ))}
+          </div>
+
+          <div style={{ width:"100%", maxWidth:860, marginTop:24, background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.12)", borderRadius:14, padding:"18px 20px" }}>
+            <div style={{ fontSize:12, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>Salle d Entrainement Tactique</div>
+            <div style={{ fontSize:11, color:"rgba(167,139,250,.5)", marginBottom:14 }}>Simulations securite - aucun impact production</div>
+            <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
+              {[
+                { key:"mrr",      label:"Simuler Incident MRR",  color:"#4CAF87" },
+                { key:"saboteur", label:"Attaque Saboteur",       color:"#F59E0B" },
+                { key:"alerte",   label:"Alerte Majeure",         color:"#E05252" },
+              ].map(sc => (
+                <button key={sc.key} style={{ flex:1, padding:"11px 14px", borderRadius:9, border:"1px solid "+sc.color+"30", background:sc.color+"08", color:sc.color, fontFamily:"inherit", fontSize:12, fontWeight:700, cursor:"pointer" }} onClick={() => runScenario(sc.key)}>{sc.label}</button>
+              ))}
+            </div>
+            {logs.length > 0 && (
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {logs.map((log,i) => <div key={i} style={{ padding:"8px 12px", borderRadius:6, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.05)", fontSize:12, color:"#A89F96", fontFamily:"monospace" }} className="fadeUp">{log}</div>)}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* PANEL */}
-      {panelOpen && (
+      {killed && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.85)", zIndex:9990, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }} onClick={() => setKilled(false)}>
+          <div style={{ fontSize:48 }}>🔴</div>
+          <div style={{ fontSize:20, fontWeight:900, color:"#E05252", textAlign:"center", letterSpacing:".04em", lineHeight:1.5 }}>SYSTEME FIGE PAR LE CREATEUR HUMAIN<br/>TOUTES LES IA SONT DESACTIVEES</div>
+          <div style={{ fontSize:12, color:"rgba(255,255,255,.3)" }}>Cliquer pour reactiver</div>
+        </div>
+      )}
+
+      {panelOpen && persona && (
         <>
-          <div style={S.overlay} onClick={() => setPanelOpen(false)}/>
-          <div style={S.panel}>
+          <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.5)", zIndex:998, backdropFilter:"blur(4px)" }} onClick={() => setPanelOpen(false)}/>
+          <div style={{ position:"fixed", top:0, right:0, bottom:0, width:400, background:"#161513", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"24px 20px", overflowY:"auto", display:"flex", flexDirection:"column", gap:14 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-              <div>
-                <div style={{ fontFamily:"serif", fontSize:20, color:"#F5F0EB", marginBottom:3 }}>
-                  {panelTarget === "general" ? "🛡️ Général Guard Auto" : "💰 Pôle Finance"}
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ fontSize:32 }}>{avatarMap[persona.avatar]}</div>
+                <div>
+                  <div style={{ fontSize:16, fontWeight:800, color:"#F5F0EB" }}>{persona.name}</div>
+                  <div style={{ fontSize:11, color:persona.color }}>{persona.role}</div>
                 </div>
-                <div style={{ fontSize:12, color:"#6B635C" }}>Panneau de Configuration</div>
               </div>
-              <button style={S.closeBtn} onClick={() => setPanelOpen(false)}>✕</button>
+              <button style={{ width:28, height:28, borderRadius:7, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:13, cursor:"pointer" }} onClick={() => setPanelOpen(false)}>X</button>
             </div>
 
-            <div style={{ background:"rgba(76,175,135,.06)", border:"1px solid rgba(76,175,135,.15)", borderRadius:10, padding:"12px 14px", display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:8, height:8, borderRadius:"50%", background:"#4CAF87", boxShadow:"0 0 8px #4CAF87" }}/>
-              <div style={{ fontSize:13, color:"#4CAF87", fontWeight:600 }}>Système initialisé · Bases posées</div>
+            <div style={{ background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)", borderRadius:10, padding:"14px" }}>
+              <div style={{ fontSize:11, fontWeight:800, color:"rgba(255,255,255,.3)", textTransform:"uppercase", marginBottom:6 }}>Rapport Flash</div>
+              <div style={{ fontSize:13, color:"#A89F96", lineHeight:1.6 }}>{CHAT[panelCtx][1]}</div>
             </div>
 
-            <div style={{ fontSize:13, fontWeight:700, color:"#F5F0EB", marginBottom:4 }}>🎯 Salle d'Entraînement des Agents</div>
-            <div style={{ fontSize:12, color:"#6B635C", marginBottom:10 }}>Simulez des scénarios pour tester l'arbre de sécurité</div>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", borderRadius:10, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)" }}>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#F5F0EB" }}>Mode Manuel Administrateur</div>
+                <div style={{ fontSize:11, color:"#6B635C" }}>L IA se fige et attend vos ordres</div>
+              </div>
+              <div style={{ width:44, height:24, borderRadius:12, background:manualMode?"#FF8C69":"rgba(255,255,255,.1)", padding:2, cursor:"pointer", display:"flex", alignItems:"center", transition:"background .2s" }} onClick={() => setManualMode(m => !m)}>
+                <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", transform:manualMode?"translateX(20px)":"none", transition:"transform .2s", boxShadow:"0 1px 4px rgba(0,0,0,.3)" }}/>
+              </div>
+            </div>
+            {manualMode && <div style={{ fontSize:12, color:"#FF8C69", background:"rgba(255,140,105,.06)", border:"1px solid rgba(255,140,105,.2)", borderRadius:8, padding:"10px 12px" }}>IA en garde-a-vous. En attente de vos ordres directs, Chef.</div>}
 
-            {[
-              { key:"finance", label:"💚 Incident Mineur Finance", color:"#4CAF87" },
-              { key:"saboteur", label:"🟠 Attaque du Saboteur", color:"#F59E0B" },
-              { key:"alerte", label:"🔴 Alerte Majeure Humaine", color:"#E05252" },
-            ].map(sc => (
-              <button key={sc.key} style={S.scenBtn(sc.color)} onClick={() => runScenario(sc.key)}>
-                {sc.label}
-              </button>
-            ))}
-
-            {scenario && (
-              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:scenarios[scenario].color, marginBottom:4 }}>
-                  Simulation : {scenarios[scenario].label}
-                </div>
-                {scenarioSteps.map((step, i) => (
-                  <div key={i} style={S.stepItem(i)}>{step}</div>
+            <div>
+              <div style={{ fontSize:11, fontWeight:800, color:"rgba(255,255,255,.3)", textTransform:"uppercase", marginBottom:8 }}>Chat Direct</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:12, maxHeight:200, overflowY:"auto" }}>
+                {chatHistory.map((m,i) => (
+                  <div key={i} style={{ padding:"8px 12px", borderRadius:8, fontSize:12, lineHeight:1.5, background:m.from==="human"?"rgba(255,140,105,.1)":"rgba(255,255,255,.04)", color:m.from==="human"?"#FF8C69":"#A89F96", alignSelf:m.from==="human"?"flex-end":"flex-start", maxWidth:"90%", border:"1px solid "+(m.from==="human"?"rgba(255,140,105,.2)":"rgba(255,255,255,.06)") }}>{m.text}</div>
                 ))}
               </div>
-            )}
-
-            <div style={{ marginTop:8 }}>
-              {[["Version","Guard Auto v0.1"],["Mode","Statique · Phase 1"],["Pôles actifs","1 / 4"],["Agents déployés","1 / 800"]].map(([l,v],i) => (
-                <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom:"1px solid rgba(255,255,255,.05)", fontSize:13 }}>
-                  <span style={{ color:"#6B635C" }}>{l}</span>
-                  <span style={{ color:"#A89F96", fontWeight:600 }}>{v}</span>
-                </div>
-              ))}
+              <div style={{ display:"flex", gap:8 }}>
+                <input style={{ flex:1, padding:"10px 14px", borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#F5F0EB", fontFamily:"inherit", fontSize:13, outline:"none" }} placeholder="Parler a l agent..." value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key==="Enter" && sendChat()}/>
+                <button style={{ padding:"10px 16px", borderRadius:8, border:"none", background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }} onClick={sendChat}>Envoyer</button>
+              </div>
             </div>
           </div>
         </>
