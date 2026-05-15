@@ -386,9 +386,8 @@ function SuperAdmin() {
                     <div style={S.tenantSlug}>/{t.slug} · {t.plan}</div>
                   </div>
                   <div style={{ display:"flex", gap:12, fontSize:12, color:"#A89F96" }}>
-                    <span>{t.users} users</span>
-                    <span>{t.products} produits</span>
-                    <span>{(t.revenue||0).toLocaleString("fr-FR")} €</span>
+                    <span>{t.users} users | {t.products} produits</span>
+                    <span style={{color:t.status==="active"?"#4CAF87":"#9E8E82",fontWeight:700}}>{t.status==="active"?"130 €":"0 €"}</span>
                   </div>
                   <span style={S.badge(t.status)}>{t.status === "active" ? "Actif" : t.status === "trial" ? "Essai" : "Suspendu"}</span>
                 </div>
