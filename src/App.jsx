@@ -1172,7 +1172,7 @@ function BottomNav({ screen, setScreen }) {
 // ══════════════════════════════════════════════════════════════════════
 
 function SecurityTree() {
-  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const S = {
     title: { fontFamily:"serif", fontSize:28, color:"#F5F0EB", marginBottom:6 },
     sub: { fontSize:13, color:"#6B635C", marginBottom:32 },
