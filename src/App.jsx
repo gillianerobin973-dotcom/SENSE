@@ -1351,8 +1351,7 @@ function SecurityTree() {
           <div style={S.sub}>Supervision NovaCaisse · {killed ? "🔴 SYSTÈME FIGÉ" : "🟢 Opérationnel"}</div>
         </div>
         <button style={S.killBtn} onClick={() => setKilled(k => !k)}>
-          {killed ? "▶ RÉACTIVER LE SYSTÈME" : "🔴 ARRÊT D'URGENCE
-HARDWARE KILL SWITCH"}
+          {killed ? "▶ RÉACTIVER LE SYSTÈME" : "🔴 ARRÊT D'URGENCE — KILL SWITCH"}
         </button>
       </div>
 
