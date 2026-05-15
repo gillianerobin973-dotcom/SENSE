@@ -1172,224 +1172,314 @@ function BottomNav({ screen, setScreen }) {
 
 
 
+
 function SecurityTree() {
   const [killed, setKilled] = useState(false);
-  const [alert, setAlert] = useState("green");
+  const [seve, setSeve] = useState("green");
+  const [activeNode, setActiveNode] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelCtx, setPanelCtx] = useState(null);
   const [logs, setLogs] = useState([]);
   const [manualMode, setManualMode] = useState(false);
   const [chatMsg, setChatMsg] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
+  const [scenarioRunning, setScenarioRunning] = useState(false);
 
-  const MRR = 260;
-  const alertColor = { green:"#4CAF87", orange:"#F59E0B", red:"#E05252" }[alert];
-  const alertLabel = { green:"Seve Saine - Systeme Operationnel", orange:"IA Active - Resolution en cours", red:"ALERTE MAJEURE - Intervention Humaine" }[alert];
-
-  const PERSONAS = {
-    general:   { name:"General Guard Auto",      avatar:"shield", role:"Commandant Central",          color:"#FF8C69" },
-    finance:   { name:"Commandant Finance-001",  avatar:"money",  role:"Surveillance MRR et Seve",    color:"#4CAF87" },
-    tribunal:  { name:"Juge Tribunal-Alpha",     avatar:"judge",  role:"Filtre Arbitrage Supreme",    color:"#A78BFA" },
-    saboteur:  { name:"Agent Saboteur",          avatar:"robot",  role:"Chaos Monkey - Tests",        color:"#F59E0B" },
-    reparateur:{ name:"Agent Reparateur",        avatar:"wrench", role:"Helper Auto - Correction",    color:"#5B9EF5" },
+  const SEVEINFO = {
+    green:  { label:"SEVE : 100% OPERATIONNELLE", color:"#4CAF87", bg:"rgba(76,175,135,.12)" },
+    orange: { label:"SEVE : INCIDENT EN COURS - IA Active", color:"#F59E0B", bg:"rgba(245,158,11,.12)" },
+    red:    { label:"SEVE : ALERTE CRITIQUE - Intervention Humaine", color:"#E05252", bg:"rgba(224,82,82,.12)" },
   };
 
-  const CHAT = {
-    general:    ["Chef ! Tout est sous controle. Les 3 tenants actifs sont bien isoles par RLS.", "Je surveille en permanence les flux de seve entre les branches.", "Aucune anomalie detectee. Statut : Vert."],
-    finance:    ["Chef ! Le MRR est a 260 EUR ce mois-ci. 2 tenants actifs x 130 EUR.", "Shop In Cafe et TechRepair Pro sont les sources de seve financiere.", "Tout est synchronise. Aucun decalage detecte."],
-    tribunal:   ["Je n arbitre que sur ordre. Aucun conflit actif.", "Mon role : valider ou bloquer les decisions critiques.", "Je refuse d agir seul en cas de crise - l humain prime."],
-    saboteur:   ["Je teste les defenses toutes les heures. Derniere tentative : bloquee.", "Mon role : trouver les failles AVANT les vrais attaquants.", "Chaos Monkey v0.1 - En veille."],
-    reparateur: ["Pret a corriger en 3 secondes si le General me donne l ordre.", "Derniere reparation : synchronisation MRR forcee avec succes.", "Mode veille active. J attends les anomalies."],
+  const PERSONAS = {
+    general:    { name:"General Guard Auto",     icon:"🛡️", role:"Commandant Central", color:"#FF8C69",
+      rapport:"Tout est sous controle. Les branches sont isolees par RLS. Aucune fuite de seve detectee.",
+      replies:["Chef ! Surveillance continue des 3 tenants actifs.", "Aucune anomalie detectee. Statut global : Vert.", "Je coordonne le Saboteur et le Reparateur en permanence."] },
+    finance:    { name:"Commandant Finance-001", icon:"💰", role:"Surveillance MRR et Seve Financiere", color:"#4CAF87",
+      rapport:"MRR a 260 EUR ce mois. 2 tenants actifs x 130 EUR. Seve financiere : stable.",
+      replies:["Chef ! Shop In Cafe et TechRepair Pro alimentent la seve.", "Aucun decalage de paiement detecte.", "Je scanne les flux toutes les heures."] },
+    tribunal:   { name:"Juge Tribunal-Alpha",    icon:"⚖️", role:"Filtre Arbitrage Supreme", color:"#A78BFA",
+      rapport:"Aucun conflit actif. Je valide ou bloque les decisions critiques uniquement sur ordre.",
+      replies:["Je refuse d arbitrer seul en cas de crise majeure.", "L humain prime toujours sur mes decisions.", "Aucune requete d arbitrage en cours."] },
+    saboteur:   { name:"Agent Saboteur",         icon:"🤖", role:"Chaos Monkey - Tests Intrusion", color:"#F59E0B",
+      rapport:"En veille. Derniere tentative d intrusion bloquee par le General. Systeme solide.",
+      replies:["Je teste les defenses toutes les heures.", "Mon role : trouver les failles avant les vrais attaquants.", "Prochain test : Intrusion RLS simulee dans ~10 min."] },
+    reparateur: { name:"Agent Reparateur",       icon:"🔧", role:"Helper Auto - Correction Automatique", color:"#5B9EF5",
+      rapport:"En attente. Pret a corriger en 3 secondes sur ordre du General.",
+      replies:["Derniere reparation : sync MRR forcee avec succes.", "Mode veille active. J attends les anomalies.", "Je peux corriger automatiquement 90% des incidents courants."] },
   };
 
   function openPanel(ctx) {
     if (killed) return;
     setPanelCtx(ctx);
     setPanelOpen(true);
-    setChatHistory([{ from:"agent", text: CHAT[ctx][0] }]);
+    setChatHistory([{ from:"agent", text: PERSONAS[ctx].rapport }]);
   }
 
   function sendChat() {
-    if (!chatMsg.trim()) return;
-    const r = CHAT[panelCtx] || [];
-    const reply = r[Math.floor(Math.random() * r.length)];
-    setChatHistory(p => [...p, { from:"human", text:chatMsg }, { from:"agent", text:reply }]);
+    if (!chatMsg.trim() || !panelCtx) return;
+    const p = PERSONAS[panelCtx];
+    const reply = p.replies[Math.floor(Math.random() * p.replies.length)];
+    setChatHistory(h => [...h, { from:"human", text:chatMsg }, { from:"agent", text:reply }]);
     setChatMsg("");
   }
 
+  function toggleManual() {
+    const next = !manualMode;
+    setManualMode(next);
+    if (next) {
+      setChatHistory(h => [...h, { from:"agent", text:"Passage en mode manuel. J attends vos instructions directes, Chef. L IA est en garde-a-vous." }]);
+    }
+  }
+
   function runScenario(key) {
-    if (killed) return;
+    if (killed || scenarioRunning) return;
+    setScenarioRunning(true);
     setLogs([]);
-    const sc = {
-      mrr: { alert:"orange", steps:["[16:00] Agent Finance-001 scanne la branche Shop In Cafe...", "[16:02] Anomalie : module actif mais seve non synchronisee.", "[16:03] Pole Tribunal saisi - analyse des droits...", "[16:04] Agent Reparateur : synchronisation forcee reussie.", "[16:05] General Guard Auto : Statut de la seve - RAS / Vert."] },
-      saboteur: { alert:"orange", steps:["[16:10] Agent Saboteur : tentative intrusion RLS entre branches...", "[16:10] Arbre en alerte orange - defense activee !", "[16:11] General Guard Auto intercepte et bloque l attaque.", "[16:12] Tribunal consigne la tentative dans l audit log.", "[16:12] Menace neutralisee. Retour au vert."] },
-      alerte: { alert:"red", steps:["[16:20] FAILLE CRITIQUE simulee dans le systeme RLS...", "[16:20] Arbre en ALERTE ROUGE - toutes les IA figees !", "[16:21] Pole Tribunal : refuse d arbitrer seul.", "[16:21] Systeme fige - EN ATTENTE DE L ADMIN HUMAIN.", "[16:21] Gilliane Robin ou Collaboratrice : intervention requise."] },
-    }[key];
-    setAlert(sc.alert);
+
+    const scenarios = {
+      mrr: {
+        seve:"orange", node:"finance",
+        badge:"L IA resout un defaut MRR... [Inspecter le chantier]",
+        badgeColor:"#F59E0B",
+        steps:[
+          "[SCAN] Commandant Finance-001 : scan de la branche Shop In Cafe...",
+          "[DETECT] Anomalie : module actif mais seve non synchronisee.",
+          "[TRIBUNAL] Pole Tribunal saisi - analyse des droits en cours...",
+          "[REPAIR] Agent Reparateur : synchronisation forcee reussie.",
+          "[OK] General Guard Auto : Seve retablie. Statut : RAS / Vert.",
+        ]
+      },
+      saboteur: {
+        seve:"orange", node:"saboteur",
+        badge:"Agent Saboteur actif ! [Inspecter le chantier]",
+        badgeColor:"#F59E0B",
+        steps:[
+          "[ATTACK] Agent Saboteur : tentative intrusion RLS entre branches...",
+          "[ALERT] Arbre en alerte orange - defense activee !",
+          "[BLOCK] General Guard Auto intercepte et bloque l attaque.",
+          "[LOG] Tribunal consigne la tentative dans l audit log.",
+          "[OK] Menace neutralisee. Retour a la normale.",
+        ]
+      },
+      alerte: {
+        seve:"red", node:"general",
+        badge:"BLOCAGE CRITIQUE ! [Prendre le controle]",
+        badgeColor:"#E05252",
+        steps:[
+          "[CRITICAL] FAILLE CRITIQUE simulee dans le systeme RLS !",
+          "[FREEZE] Toutes les IA figees - alerte rouge !",
+          "[TRIBUNAL] Pole Tribunal : refuse d arbitrer seul.",
+          "[WAIT] Systeme fige - EN ATTENTE DE L ADMIN HUMAIN.",
+          "[HUMAN] Gilliane Robin ou Collaboratrice : intervention requise.",
+        ]
+      },
+    };
+
+    const sc = scenarios[key];
+    setSeve(sc.seve);
+    setActiveNode(sc.node);
+
     sc.steps.forEach((step, i) => {
       setTimeout(() => {
         setLogs(p => [...p, step]);
-        if (i === sc.steps.length - 1 && key !== "alerte") {
-          setTimeout(() => setAlert("green"), 2500);
+        if (i === sc.steps.length - 1) {
+          setScenarioRunning(false);
+          if (key !== "alerte") {
+            setTimeout(() => { setSeve("green"); setActiveNode(null); }, 3000);
+          }
         }
-      }, i * 900);
+      }, i * 800);
     });
   }
 
+  const seveInfo = SEVEINFO[seve];
+
+  function NodeCard({ ctx, title, sub, children, wide }) {
+    const p = PERSONAS[ctx] || {};
+    const isActive = activeNode === ctx;
+    const borderColor = isActive ? (seve==="red"?"#E05252":"#F59E0B") : (p.color||"rgba(255,255,255,.15)");
+    const glowColor = isActive ? (seve==="red"?"rgba(224,82,82,.3)":"rgba(245,158,11,.3)") : "transparent";
+    return (
+      <div style={{ background:"rgba(255,255,255,.03)", border:"2px solid "+borderColor, borderRadius:14, padding:"16px 20px", textAlign:"center", cursor:"pointer", transition:"all .3s", boxShadow:"0 0 "+(isActive?"20px":"0px")+" "+glowColor, animation:isActive?"blink 1s infinite":"none", minWidth:wide?280:160 }} onClick={()=>openPanel(ctx)}>
+        <div style={{ fontSize:24, marginBottom:4 }}>{p.icon||"?"}</div>
+        <div style={{ fontSize:14, fontWeight:800, color:"#F5F0EB", marginBottom:2 }}>{title}</div>
+        {sub && <div style={{ fontSize:10, color:"rgba(255,255,255,.35)", marginBottom:6 }}>{sub}</div>}
+        {children}
+        {isActive && (
+          <div style={{ marginTop:8, padding:"5px 10px", borderRadius:7, background:(seve==="red"?"rgba(224,82,82,.12)":"rgba(245,158,11,.12)"), border:"1px solid "+(seve==="red"?"rgba(224,82,82,.3)":"rgba(245,158,11,.3)"), color:(seve==="red"?"#E05252":"#F59E0B"), fontSize:10, fontWeight:700, cursor:"pointer" }} className="blink" onClick={e=>{e.stopPropagation();openPanel(ctx);}}>
+            {seve==="red"?"BLOCAGE CRITIQUE ! [Prendre le controle]":"L IA resout un defaut... [Inspecter]"}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const persona = panelCtx ? PERSONAS[panelCtx] : null;
-  const avatarMap = { shield:"🛡️", money:"💰", judge:"⚖️", robot:"🤖", wrench:"🔧" };
 
   return (
     <div>
-      <style>{"@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}} .blink{animation:blink 1.2s infinite} .fadeUp{animation:fadeUp .3s ease both}"}</style>
+      <style>{"@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}} .blink{animation:blink 1s infinite} .fadeUp{animation:fadeUp .4s ease both}"}</style>
 
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
         <div>
           <div style={{ fontFamily:"serif", fontSize:26, color:"#F5F0EB", marginBottom:8 }}>Ecosysteme IA - L Arbre</div>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"6px 14px", borderRadius:100, background:alertColor+"15", border:"1px solid "+alertColor+"40", color:alertColor, fontSize:12, fontWeight:700 }} className={alert!=="green"?"blink":""}>
-            {alert==="green"?"🟢":"alert==="orange"?"🟠":"🔴"} {alertLabel}
+          <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"6px 16px", borderRadius:100, background:seveInfo.bg, border:"1px solid "+seveInfo.color+"50", color:seveInfo.color, fontSize:12, fontWeight:800, letterSpacing:".03em" }} className={seve!=="green"?"blink":""}>
+            <div style={{ width:8, height:8, borderRadius:"50%", background:seveInfo.color, boxShadow:"0 0 8px "+seveInfo.color }}/>
+            {seveInfo.label}
           </div>
         </div>
-        <button onClick={() => { setKilled(k => !k); }} style={{ padding:"9px 16px", borderRadius:10, border:"1.5px solid "+(killed?"rgba(76,175,135,.4)":"rgba(224,82,82,.4)"), background:killed?"rgba(76,175,135,.1)":"rgba(224,82,82,.1)", color:killed?"#4CAF87":"#E05252", fontFamily:"inherit", fontSize:12, fontWeight:800, cursor:"pointer" }}>
-          {killed ? "REACTIVER L ARBRE" : "KILL SWITCH - ARRET TOTAL"}
+        <button onClick={()=>{setKilled(k=>!k);}} style={{ padding:"9px 16px", borderRadius:10, border:"1.5px solid "+(killed?"rgba(76,175,135,.4)":"rgba(224,82,82,.4)"), background:killed?"rgba(76,175,135,.1)":"rgba(224,82,82,.1)", color:killed?"#4CAF87":"#E05252", fontFamily:"inherit", fontSize:12, fontWeight:800, cursor:"pointer" }}>
+          {killed?"REACTIVER L ARBRE":"KILL SWITCH - ARRET TOTAL"}
         </button>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:24 }}>
-        <div style={{ background:"rgba(76,175,135,.04)", border:"1px solid rgba(76,175,135,.12)", borderRadius:12, padding:"14px 16px" }}>
-          <div style={{ fontSize:11, fontWeight:800, color:"#4CAF87", textTransform:"uppercase", marginBottom:6 }}>Monde Reel</div>
-          <div style={{ fontSize:22, fontWeight:900, color:"#4CAF87" }}>{MRR} EUR</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
+        <div style={{ background:"rgba(76,175,135,.05)", border:"1px solid rgba(76,175,135,.15)", borderRadius:12, padding:"14px 16px" }}>
+          <div style={{ fontSize:10, fontWeight:800, color:"#4CAF87", textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>Monde Reel</div>
+          <div style={{ fontSize:22, fontWeight:900, color:"#4CAF87", marginBottom:2 }}>260 EUR</div>
           <div style={{ fontSize:11, color:"rgba(76,175,135,.6)" }}>MRR Production - 2 actifs x 130 EUR</div>
+          <div style={{ marginTop:6, fontSize:11, color:"rgba(76,175,135,.5)" }}>Statut production : Stable</div>
         </div>
-        <div style={{ background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.12)", borderRadius:12, padding:"14px 16px" }}>
-          <div style={{ fontSize:11, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", marginBottom:6 }}>Labo Crash-Test</div>
-          <div style={{ fontSize:12, color:"rgba(167,139,250,.7)", lineHeight:1.5 }}>Zone simulation - zero impact sur vrais clients</div>
+        <div style={{ background:"rgba(167,139,250,.05)", border:"1px solid rgba(167,139,250,.15)", borderRadius:12, padding:"14px 16px" }}>
+          <div style={{ fontSize:10, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>Labo Crash-Test</div>
+          <div style={{ fontSize:11, color:"rgba(167,139,250,.7)", lineHeight:1.6 }}>Zone virtuelle securisee - zero impact sur vrais clients. Entrainement des agents IA.</div>
         </div>
-        <div style={{ background:"rgba(91,158,245,.04)", border:"1px solid rgba(91,158,245,.12)", borderRadius:12, padding:"14px 16px" }}>
-          <div style={{ fontSize:11, fontWeight:800, color:"#5B9EF5", textTransform:"uppercase", marginBottom:6 }}>Radar IA</div>
-          <div style={{ fontSize:11, color:"rgba(91,158,245,.7)", lineHeight:1.5 }}>Prochain test Chaos Monkey : Intrusion RLS dans ~10 min</div>
+        <div style={{ background:"rgba(91,158,245,.05)", border:"1px solid rgba(91,158,245,.15)", borderRadius:12, padding:"14px 16px" }}>
+          <div style={{ fontSize:10, fontWeight:800, color:"#5B9EF5", textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>Radar IA</div>
+          <div style={{ fontSize:11, color:"rgba(91,158,245,.7)", lineHeight:1.6 }}>Prochain test Chaos Monkey : Intrusion RLS simulee dans ~10 min</div>
         </div>
       </div>
 
-      <div style={killed ? { opacity:.3, filter:"grayscale(1)", pointerEvents:"none", transition:"all .5s" } : {}}>
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+      <div style={killed?{opacity:.25,filter:"grayscale(1)",pointerEvents:"none",transition:"all .5s"}:{}}>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:0 }}>
 
-          <div style={{ background:"rgba(167,139,250,.08)", border:"1.5px solid rgba(167,139,250,.3)", borderRadius:14, padding:"16px 28px", textAlign:"center", minWidth:300, cursor:"pointer" }} onClick={() => openPanel("tribunal")}>
-            <div style={{ fontSize:10, color:"rgba(167,139,250,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>La Racine - Controle Supreme</div>
-            <div style={{ fontSize:16, fontWeight:800, color:"#F5F0EB", marginBottom:6 }}>Quartier General Humain</div>
-            <div style={{ fontSize:11, color:"rgba(167,139,250,.7)" }}>Gilliane Robin et Collaboratrice</div>
-            <div style={{ marginTop:8, display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(167,139,250,.1)", border:"1px solid rgba(167,139,250,.2)", color:"#A78BFA", fontSize:10, fontWeight:700 }}>Pole Tribunal - Filtre Arbitrage</div>
+          <NodeCard ctx="tribunal" title="Quartier General Humain" sub="Gilliane Robin et Collaboratrice" wide>
+            <div style={{ fontSize:10, color:"rgba(167,139,250,.6)", marginBottom:4 }}>La Racine - Controle Supreme</div>
+            <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(167,139,250,.1)", border:"1px solid rgba(167,139,250,.2)", color:"#A78BFA", fontSize:10, fontWeight:700 }}>Pole Tribunal - Arbitrage</div>
+          </NodeCard>
+
+          <div style={{ width:2, height:28, background:"rgba(255,255,255,.1)" }}/>
+
+          <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+            <NodeCard ctx="saboteur" title="Agent Saboteur" sub="Chaos Monkey"/>
+            <div style={{ width:20, height:2, background:"rgba(255,255,255,.1)" }}/>
+            <NodeCard ctx="general" title="General Guard Auto" sub="Tronc - NovaCaisse Core" wide>
+              <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:4 }}>
+                <div style={{ padding:"2px 8px", borderRadius:100, background:"rgba(76,175,135,.1)", border:"1px solid rgba(76,175,135,.2)", color:"#4CAF87", fontSize:9, fontWeight:700 }}>Actif</div>
+                <div style={{ padding:"2px 8px", borderRadius:100, background:"rgba(255,140,105,.1)", border:"1px solid rgba(255,140,105,.2)", color:"#FF8C69", fontSize:9, fontWeight:700 }}>Vercel+Supabase</div>
+              </div>
+            </NodeCard>
+            <div style={{ width:20, height:2, background:"rgba(255,255,255,.1)" }}/>
+            <NodeCard ctx="reparateur" title="Agent Reparateur" sub="Helper Auto"/>
           </div>
 
-          <div style={{ width:2, height:32, background:"rgba(255,255,255,.1)" }}/>
-
-          <div style={{ background:alert!=="green"?"rgba(255,140,105,.15)":"rgba(255,140,105,.08)", border:"1.5px solid rgba(255,140,105,.4)", borderRadius:16, padding:"18px 32px", textAlign:"center", minWidth:280, cursor:"pointer", transition:"all .3s" }} onClick={() => openPanel("general")}>
-            <div style={{ fontSize:10, color:"rgba(255,140,105,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>Le Tronc - NovaCaisse Core</div>
-            <div style={{ fontSize:17, fontWeight:800, color:"#F5F0EB", marginBottom:8 }}>General Guard Auto</div>
-            <div style={{ display:"flex", justifyContent:"center", gap:8, flexWrap:"wrap", marginBottom:8 }}>
-              <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(76,175,135,.1)", border:"1px solid rgba(76,175,135,.2)", color:"#4CAF87", fontSize:10, fontWeight:700 }}>Actif</div>
-              <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.2)", color:"#F59E0B", fontSize:10, fontWeight:700, cursor:"pointer" }} onClick={e=>{e.stopPropagation();openPanel("saboteur")}}>Saboteur</div>
-              <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:100, background:"rgba(91,158,245,.1)", border:"1px solid rgba(91,158,245,.2)", color:"#5B9EF5", fontSize:10, fontWeight:700, cursor:"pointer" }} onClick={e=>{e.stopPropagation();openPanel("reparateur")}}>Reparateur</div>
-            </div>
-            {alert==="orange" && <div style={{ marginTop:6, padding:"6px 10px", borderRadius:8, background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.2)", color:"#F59E0B", fontSize:11, fontWeight:700, cursor:"pointer" }} className="blink" onClick={e=>{e.stopPropagation();openPanel("general")}}>L IA resout un defaut... [Inspecter]</div>}
-            {alert==="red" && <div style={{ marginTop:6, padding:"6px 10px", borderRadius:8, background:"rgba(224,82,82,.1)", border:"1px solid rgba(224,82,82,.2)", color:"#E05252", fontSize:11, fontWeight:700, cursor:"pointer" }} className="blink" onClick={e=>{e.stopPropagation();openPanel("tribunal")}}>BLOCAGE CRITIQUE ! [Prendre le controle]</div>}
-          </div>
-
-          <div style={{ width:2, height:32, background:"rgba(255,255,255,.1)" }}/>
-          <div style={{ width:"75%", maxWidth:860, position:"relative", height:24 }}>
+          <div style={{ width:2, height:28, background:"rgba(255,255,255,.1)" }}/>
+          <div style={{ width:"80%", maxWidth:860, position:"relative", height:20 }}>
             <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"rgba(255,255,255,.1)" }}/>
-            {[0,1,2,3].map(i=><div key={i} style={{ position:"absolute", top:0, left:(12.5+i*25)+"%", width:2, height:24, background:"rgba(255,255,255,.1)", transform:"translateX(-50%)" }}/>)}
+            {[0,1,2,3].map(i=><div key={i} style={{ position:"absolute", top:0, left:(12.5+i*25)+"%", width:2, height:20, background:"rgba(255,255,255,.1)", transform:"translateX(-50%)" }}/>)}
           </div>
-          <div style={{ height:8 }}/>
+          <div style={{ height:6 }}/>
 
           <div style={{ display:"flex", gap:10, width:"100%", maxWidth:860 }}>
             {[
-              { id:"general",  icon:"🧾", name:"Pole Caisse",   count:"0/200", active:false, color:"#9E8E82" },
-              { id:"general",  icon:"📦", name:"Pole Stocks",   count:"0/200", active:false, color:"#9E8E82" },
-              { id:"general",  icon:"👥", name:"Pole RH",       count:"0/200", active:false, color:"#9E8E82" },
-              { id:"finance",  icon:"💰", name:"Pole Finance",  count:"1/200", active:true,  color:"#4CAF87", agent:"Agent 001 : Surveillance MRR" },
-            ].map((p,i) => (
-              <div key={i} style={{ flex:1, borderRadius:12, padding:"14px 10px", textAlign:"center", background:p.active?"rgba(76,175,135,.08)":"rgba(255,255,255,.02)", border:p.active?"1.5px solid rgba(76,175,135,.3)":"1px solid rgba(255,255,255,.06)", cursor:p.active?"pointer":"default", position:"relative", opacity:p.active?1:.55, transition:"all .2s" }} onClick={() => p.active && openPanel(p.id)}>
-                {!p.active && <div style={{ position:"absolute", top:8, right:8, fontSize:10, color:"rgba(255,255,255,.2)" }}>🔒</div>}
-                <div style={{ fontSize:22, marginBottom:6 }}>{p.icon}</div>
-                <div style={{ fontSize:12, fontWeight:700, color:p.active?"#4CAF87":"rgba(255,255,255,.4)", marginBottom:4 }}>{p.name}</div>
-                <div style={{ fontSize:10, color:p.active?"rgba(76,175,135,.6)":"rgba(255,255,255,.2)", display:"inline-block", padding:"2px 8px", borderRadius:100, background:p.active?"rgba(76,175,135,.1)":"rgba(255,255,255,.04)", border:p.active?"1px solid rgba(76,175,135,.2)":"1px solid rgba(255,255,255,.06)" }}>{p.count} agents</div>
-                {p.agent && <div style={{ display:"block", marginTop:6, fontSize:10, color:"#4CAF87", background:"rgba(76,175,135,.08)", borderRadius:4, padding:"3px 6px", border:"1px solid rgba(76,175,135,.15)" }}>{p.agent}</div>}
-                {!p.active && <div style={{ display:"block", marginTop:6, fontSize:9, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".06em" }}>Verrouille</div>}
+              { ctx:"general", icon:"🧾", name:"Pole Caisse",  count:"0/200", active:false },
+              { ctx:"general", icon:"📦", name:"Pole Stocks",  count:"0/200", active:false },
+              { ctx:"general", icon:"👥", name:"Pole RH",      count:"0/200", active:false },
+              { ctx:"finance", icon:"💰", name:"Pole Finance", count:"1/200", active:true, agent:"Agent 001 : Surveillance MRR" },
+            ].map((p,i)=>(
+              <div key={i} style={{ flex:1, borderRadius:12, padding:"14px 10px", textAlign:"center", background:p.active?"rgba(76,175,135,.07)":"rgba(255,255,255,.02)", border:(activeNode==="finance"&&p.active)?"2px solid #F59E0B":p.active?"1.5px solid rgba(76,175,135,.3)":"1px solid rgba(255,255,255,.06)", cursor:p.active?"pointer":"default", position:"relative", opacity:p.active?1:.5, transition:"all .3s", boxShadow:(activeNode==="finance"&&p.active)?"0 0 16px rgba(245,158,11,.2)":"none", animation:(activeNode==="finance"&&p.active&&seve!=="green")?"blink 1s infinite":"none" }} onClick={()=>p.active&&openPanel(p.ctx)}>
+                {!p.active&&<div style={{ position:"absolute", top:8, right:8, fontSize:10, color:"rgba(255,255,255,.2)" }}>🔒</div>}
+                <div style={{ fontSize:22, marginBottom:4 }}>{p.icon}</div>
+                <div style={{ fontSize:12, fontWeight:700, color:p.active?"#4CAF87":"rgba(255,255,255,.35)", marginBottom:3 }}>{p.name}</div>
+                <div style={{ fontSize:10, display:"inline-block", padding:"2px 8px", borderRadius:100, background:p.active?"rgba(76,175,135,.1)":"rgba(255,255,255,.04)", color:p.active?"rgba(76,175,135,.8)":"rgba(255,255,255,.2)", border:p.active?"1px solid rgba(76,175,135,.2)":"1px solid rgba(255,255,255,.06)" }}>{p.count} agents</div>
+                {p.agent&&<div style={{ display:"block", marginTop:5, fontSize:10, color:"#4CAF87", background:"rgba(76,175,135,.07)", borderRadius:4, padding:"2px 6px", border:"1px solid rgba(76,175,135,.12)" }}>{p.agent}</div>}
+                {!p.active&&<div style={{ display:"block", marginTop:5, fontSize:9, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".06em" }}>Verrouille</div>}
               </div>
             ))}
           </div>
 
-          <div style={{ width:"100%", maxWidth:860, marginTop:24, background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.12)", borderRadius:14, padding:"18px 20px" }}>
-            <div style={{ fontSize:12, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>Salle d Entrainement Tactique</div>
-            <div style={{ fontSize:11, color:"rgba(167,139,250,.5)", marginBottom:14 }}>Simulations securite - aucun impact production</div>
-            <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
+          <div style={{ width:"100%", maxWidth:860, marginTop:20, background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.15)", borderRadius:14, padding:"18px 20px" }}>
+            <div style={{ fontSize:11, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", letterSpacing:".08em", marginBottom:3 }}>Salle d Entrainement Tactique</div>
+            <div style={{ fontSize:11, color:"rgba(167,139,250,.5)", marginBottom:14 }}>Simulations securite - zero impact production</div>
+            <div style={{ display:"flex", gap:8, marginBottom:14 }}>
               {[
-                { key:"mrr",      label:"Simuler Incident MRR",  color:"#4CAF87" },
-                { key:"saboteur", label:"Attaque Saboteur",       color:"#F59E0B" },
-                { key:"alerte",   label:"Alerte Majeure",         color:"#E05252" },
-              ].map(sc => (
-                <button key={sc.key} style={{ flex:1, padding:"11px 14px", borderRadius:9, border:"1px solid "+sc.color+"30", background:sc.color+"08", color:sc.color, fontFamily:"inherit", fontSize:12, fontWeight:700, cursor:"pointer" }} onClick={() => runScenario(sc.key)}>{sc.label}</button>
+                { key:"mrr",      label:"Incident MRR",    color:"#4CAF87" },
+                { key:"saboteur", label:"Attaque Saboteur", color:"#F59E0B" },
+                { key:"alerte",   label:"Alerte Majeure",   color:"#E05252" },
+              ].map(sc=>(
+                <button key={sc.key} disabled={scenarioRunning||killed} style={{ flex:1, padding:"11px 10px", borderRadius:9, border:"1px solid "+sc.color+"30", background:sc.color+"08", color:sc.color, fontFamily:"inherit", fontSize:11, fontWeight:700, cursor:(scenarioRunning||killed)?"not-allowed":"pointer", opacity:(scenarioRunning||killed)?.5:1 }} onClick={()=>runScenario(sc.key)}>
+                  {sc.key==="mrr"?"💚 ":sc.key==="saboteur"?"🟠 ":"🔴 "}{sc.label}
+                </button>
               ))}
             </div>
-            {logs.length > 0 && (
-              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                {logs.map((log,i) => <div key={i} style={{ padding:"8px 12px", borderRadius:6, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.05)", fontSize:12, color:"#A89F96", fontFamily:"monospace" }} className="fadeUp">{log}</div>)}
-              </div>
-            )}
+            <div style={{ background:"#0a0a0a", borderRadius:10, padding:"14px 16px", height:160, overflowY:"auto", fontFamily:"monospace", fontSize:11, display:"flex", flexDirection:"column", gap:4, border:"1px solid rgba(76,175,135,.15)" }}>
+              {logs.length===0 ? <div style={{ color:"rgba(76,175,135,.3)" }}>{">"} En attente d un scenario...</div> :
+                logs.map((log,i)=>(
+                  <div key={i} style={{ color:"#4CAF87" }} className="fadeUp">{">"} {log}</div>
+                ))
+              }
+            </div>
           </div>
         </div>
       </div>
 
-      {killed && (
-        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.85)", zIndex:9990, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }} onClick={() => setKilled(false)}>
-          <div style={{ fontSize:48 }}>🔴</div>
-          <div style={{ fontSize:20, fontWeight:900, color:"#E05252", textAlign:"center", letterSpacing:".04em", lineHeight:1.5 }}>SYSTEME FIGE PAR LE CREATEUR HUMAIN<br/>TOUTES LES IA SONT DESACTIVEES</div>
+      {killed&&(
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.88)", zIndex:9990, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }} onClick={()=>setKilled(false)}>
+          <div style={{ fontSize:52 }}>🔴</div>
+          <div style={{ fontSize:18, fontWeight:900, color:"#E05252", textAlign:"center", lineHeight:1.5, letterSpacing:".04em" }}>SYSTEME FIGE PAR LE CREATEUR HUMAIN<br/>TOUTES LES IA SONT DESACTIVEES</div>
           <div style={{ fontSize:12, color:"rgba(255,255,255,.3)" }}>Cliquer pour reactiver</div>
         </div>
       )}
 
-      {panelOpen && persona && (
+      {panelOpen&&persona&&(
         <>
-          <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.5)", zIndex:998, backdropFilter:"blur(4px)" }} onClick={() => setPanelOpen(false)}/>
-          <div style={{ position:"fixed", top:0, right:0, bottom:0, width:400, background:"#161513", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"24px 20px", overflowY:"auto", display:"flex", flexDirection:"column", gap:14 }}>
+          <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.5)", zIndex:998, backdropFilter:"blur(4px)" }} onClick={()=>setPanelOpen(false)}/>
+          <div style={{ position:"fixed", top:0, right:0, bottom:0, width:400, background:"#0f0e0d", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"22px 18px", overflowY:"auto", display:"flex", flexDirection:"column", gap:12 }}>
+
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ fontSize:32 }}>{avatarMap[persona.avatar]}</div>
+                <div style={{ width:48, height:48, borderRadius:12, background:persona.color+"20", border:"1.5px solid "+persona.color+"40", fontSize:24, display:"flex", alignItems:"center", justifyContent:"center" }}>{persona.icon}</div>
                 <div>
-                  <div style={{ fontSize:16, fontWeight:800, color:"#F5F0EB" }}>{persona.name}</div>
+                  <div style={{ fontSize:15, fontWeight:800, color:"#F5F0EB" }}>{persona.name}</div>
                   <div style={{ fontSize:11, color:persona.color }}>{persona.role}</div>
                 </div>
               </div>
-              <button style={{ width:28, height:28, borderRadius:7, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:13, cursor:"pointer" }} onClick={() => setPanelOpen(false)}>X</button>
+              <button style={{ width:28, height:28, borderRadius:7, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:13, cursor:"pointer" }} onClick={()=>setPanelOpen(false)}>X</button>
             </div>
 
-            <div style={{ background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)", borderRadius:10, padding:"14px" }}>
-              <div style={{ fontSize:11, fontWeight:800, color:"rgba(255,255,255,.3)", textTransform:"uppercase", marginBottom:6 }}>Rapport Flash</div>
-              <div style={{ fontSize:13, color:"#A89F96", lineHeight:1.6 }}>{CHAT[panelCtx][1]}</div>
+            <div style={{ background:"rgba(76,175,135,.05)", border:"1px solid rgba(76,175,135,.15)", borderRadius:10, padding:"12px 14px" }}>
+              <div style={{ fontSize:10, fontWeight:800, color:"#4CAF87", textTransform:"uppercase", marginBottom:5 }}>Monde Reel - Production</div>
+              <div style={{ fontSize:12, color:"rgba(76,175,135,.8)" }}>Statut : Stable | MRR Reel : 260 EUR | 2 tenants actifs</div>
             </div>
 
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", borderRadius:10, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)" }}>
+            <div style={{ background:"rgba(167,139,250,.05)", border:"1px solid rgba(167,139,250,.15)", borderRadius:10, padding:"12px 14px" }}>
+              <div style={{ fontSize:10, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", marginBottom:5 }}>Labo de Crash-Test</div>
+              <div style={{ fontSize:11, color:"rgba(167,139,250,.7)", lineHeight:1.5 }}>Zone virtuelle securisee - entrainer nos agents sans impacter les vrais clients.</div>
+            </div>
+
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"11px 14px", borderRadius:10, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)" }}>
               <div>
-                <div style={{ fontSize:13, fontWeight:700, color:"#F5F0EB" }}>Mode Manuel Administrateur</div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#F5F0EB" }}>Mode Manuel Admin</div>
                 <div style={{ fontSize:11, color:"#6B635C" }}>L IA se fige et attend vos ordres</div>
               </div>
-              <div style={{ width:44, height:24, borderRadius:12, background:manualMode?"#FF8C69":"rgba(255,255,255,.1)", padding:2, cursor:"pointer", display:"flex", alignItems:"center", transition:"background .2s" }} onClick={() => setManualMode(m => !m)}>
+              <div style={{ width:44, height:24, borderRadius:12, background:manualMode?"#FF8C69":"rgba(255,255,255,.1)", padding:2, cursor:"pointer", display:"flex", alignItems:"center", transition:"background .2s" }} onClick={toggleManual}>
                 <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", transform:manualMode?"translateX(20px)":"none", transition:"transform .2s", boxShadow:"0 1px 4px rgba(0,0,0,.3)" }}/>
               </div>
             </div>
-            {manualMode && <div style={{ fontSize:12, color:"#FF8C69", background:"rgba(255,140,105,.06)", border:"1px solid rgba(255,140,105,.2)", borderRadius:8, padding:"10px 12px" }}>IA en garde-a-vous. En attente de vos ordres directs, Chef.</div>}
 
             <div>
-              <div style={{ fontSize:11, fontWeight:800, color:"rgba(255,255,255,.3)", textTransform:"uppercase", marginBottom:8 }}>Chat Direct</div>
-              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:12, maxHeight:200, overflowY:"auto" }}>
-                {chatHistory.map((m,i) => (
-                  <div key={i} style={{ padding:"8px 12px", borderRadius:8, fontSize:12, lineHeight:1.5, background:m.from==="human"?"rgba(255,140,105,.1)":"rgba(255,255,255,.04)", color:m.from==="human"?"#FF8C69":"#A89F96", alignSelf:m.from==="human"?"flex-end":"flex-start", maxWidth:"90%", border:"1px solid "+(m.from==="human"?"rgba(255,140,105,.2)":"rgba(255,255,255,.06)") }}>{m.text}</div>
+              <div style={{ fontSize:10, fontWeight:800, color:"rgba(255,255,255,.25)", textTransform:"uppercase", marginBottom:8 }}>Chat Direct</div>
+              <div style={{ background:"#080808", borderRadius:10, border:"1px solid rgba(255,255,255,.06)", padding:"12px", marginBottom:10, maxHeight:220, overflowY:"auto", display:"flex", flexDirection:"column", gap:8 }}>
+                {chatHistory.map((m,i)=>(
+                  <div key={i} style={{ display:"flex", justifyContent:m.from==="human"?"flex-end":"flex-start" }}>
+                    <div style={{ padding:"8px 12px", borderRadius:10, fontSize:12, lineHeight:1.5, background:m.from==="human"?"rgba(255,140,105,.12)":"rgba(255,255,255,.04)", color:m.from==="human"?"#FF8C69":"#A89F96", maxWidth:"88%", border:"1px solid "+(m.from==="human"?"rgba(255,140,105,.2)":"rgba(255,255,255,.06)") }}>{m.text}</div>
+                  </div>
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <input style={{ flex:1, padding:"10px 14px", borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#F5F0EB", fontFamily:"inherit", fontSize:13, outline:"none" }} placeholder="Parler a l agent..." value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key==="Enter" && sendChat()}/>
-                <button style={{ padding:"10px 16px", borderRadius:8, border:"none", background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }} onClick={sendChat}>Envoyer</button>
+                <input style={{ flex:1, padding:"10px 14px", borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#F5F0EB", fontFamily:"inherit", fontSize:12, outline:"none" }} placeholder="Discuter avec le responsable..." value={chatMsg} onChange={e=>setChatMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()}/>
+                <button style={{ padding:"10px 14px", borderRadius:8, border:"none", background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontFamily:"inherit", fontSize:12, fontWeight:700, cursor:"pointer" }} onClick={sendChat}>Envoyer</button>
               </div>
             </div>
           </div>
