@@ -244,7 +244,7 @@ function SuperAdmin() {
     active: tenants.filter(t => t.status === "active").length,
     trial: tenants.filter(t => t.status === "trial").length,
     suspended: tenants.filter(t => t.status === "suspended").length,
-    mrr: tenants.reduce((s,t) => s + (t.revenue||0), 0),
+    mrr: tenants.filter(t => t.status === "active").length * 130,
   };
 
   const S = {
@@ -364,7 +364,7 @@ function SuperAdmin() {
                 { val:stats.active, label:"Actifs", color:"#4CAF87" },
                 { val:stats.trial, label:"En essai", color:"#F59E0B" },
                 { val:stats.suspended, label:"Suspendus", color:"#E05252" },
-                { val:stats.mrr.toLocaleString("fr-FR")+" €", label:"MRR estimé", color:"#FF8C69" },
+                { val:stats.mrr.toLocaleString("fr-FR")+" €", label:`MRR réel (${stats.active}×130€)`, color:"#FF8C69" },
               ].map((k,i) => (
                 <div key={i} style={S.kpi()}>
                   <div style={S.kpiVal(k.color)}>{k.val}</div>
