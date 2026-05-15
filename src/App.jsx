@@ -314,6 +314,7 @@ function SuperAdmin() {
     { id:"tenants", label:"Tenants", icon:"⬡" },
     { id:"create", label:"Nouveau Tenant", icon:"+" },
     { id:"modules", label:"Modules", icon:"⊞" },
+    { id:"security", label:"Sécurité (Arbre)", icon:"🛡️" },
     { id:"audit", label:"Audit Log", icon:"⊙" },
   ];
 
@@ -617,6 +618,10 @@ function SuperAdmin() {
               </div>
             </div>
           </div>
+        )}
+
+        {view === "security" && (
+          <SecurityTree />
         )}
 
         {view === "modules" && (
@@ -1165,6 +1170,108 @@ function BottomNav({ screen, setScreen }) {
 // ══════════════════════════════════════════════════════════════════════
 // AUTH — Page Login NovaCaisse
 // ══════════════════════════════════════════════════════════════════════
+
+function SecurityTree() {
+  const [panelOpen, setPanelOpen] = React.useState(false);
+  const S = {
+    title: { fontFamily:"serif", fontSize:28, color:"#F5F0EB", marginBottom:6 },
+    sub: { fontSize:13, color:"#6B635C", marginBottom:32 },
+    tree: { display:"flex", flexDirection:"column", alignItems:"center", gap:0 },
+    connector: { width:2, height:40, background:"rgba(255,255,255,.1)" },
+    hub: { border:"2px dashed rgba(255,255,255,.15)", borderRadius:14, padding:"18px 32px", textAlign:"center", color:"rgba(255,255,255,.3)", fontSize:13, fontWeight:600, background:"rgba(255,255,255,.02)", minWidth:320 },
+    hubLabel: { fontSize:11, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 },
+    generalWrap: { cursor:"pointer" },
+    general: { background:"linear-gradient(135deg,rgba(255,140,105,.12),rgba(232,112,74,.06))", border:"1.5px solid rgba(255,140,105,.35)", borderRadius:16, padding:"22px 36px", textAlign:"center", minWidth:300, boxShadow:"0 8px 32px rgba(255,140,105,.12)", transition:"all .2s", position:"relative" },
+    generalTitle: { fontSize:18, fontWeight:800, color:"#F5F0EB", marginBottom:6 },
+    badge: { display:"inline-flex", alignItems:"center", gap:6, padding:"4px 12px", borderRadius:100, background:"rgba(76,175,135,.15)", border:"1px solid rgba(76,175,135,.3)", color:"#4CAF87", fontSize:11, fontWeight:700 },
+    badgeDot: { width:6, height:6, borderRadius:"50%", background:"#4CAF87", boxShadow:"0 0 6px #4CAF87" },
+    poles: { display:"flex", gap:16, justifyContent:"center", width:"100%", maxWidth:820 },
+    pole: { flex:1, background:"rgba(255,255,255,.025)", border:"1px solid rgba(255,255,255,.07)", borderRadius:12, padding:"16px 12px", textAlign:"center", opacity:.7, position:"relative" },
+    poleLock: { position:"absolute", top:10, right:10, fontSize:11, color:"rgba(255,255,255,.2)" },
+    overlay: { position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.5)", zIndex:998, backdropFilter:"blur(4px)" },
+    panel: { position:"fixed", top:0, right:0, bottom:0, width:380, background:"#161513", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"32px 28px", boxShadow:"-8px 0 40px rgba(0,0,0,.4)", display:"flex", flexDirection:"column", gap:20 },
+    closeBtn: { width:32, height:32, borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:16, cursor:"pointer" },
+    statusCard: { background:"rgba(76,175,135,.06)", border:"1px solid rgba(76,175,135,.15)", borderRadius:10, padding:"14px 16px", display:"flex", alignItems:"center", gap:12 },
+    waitingCard: { background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.06)", borderRadius:10, padding:"20px 16px", textAlign:"center" },
+    infoRow: { display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,.05)", fontSize:13 },
+  };
+  const poles = [
+    { icon:"🧾", name:"Pôle Caisse" }, { icon:"📦", name:"Pôle Stocks" },
+    { icon:"👥", name:"Pôle RH" },    { icon:"💰", name:"Pôle Finance" },
+  ];
+  return (
+    <div>
+      <div style={S.title}>🛡️ Sécurité — Arbre Logique</div>
+      <div style={S.sub}>Structure de supervision NovaCaisse · Phase 1 statique</div>
+      <div style={S.tree}>
+        <div style={S.hub}>
+          <div style={S.hubLabel}>Niveau 1 · Hub Suprême</div>
+          <div>⬜ Quartier Général Suprême</div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,.15)", marginTop:4 }}>[ En attente de déploiement ]</div>
+        </div>
+        <div style={S.connector}/>
+        <div style={S.generalWrap} onClick={() => setPanelOpen(true)}>
+          <div style={S.general}>
+            <div style={{ fontSize:11, color:"rgba(255,140,105,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>Niveau 2 · Commandant</div>
+            <div style={S.generalTitle}>🛡️ Général Guard Auto</div>
+            <div style={{ fontSize:12, color:"rgba(255,140,105,.7)", marginBottom:12 }}>Superviseur central de la plateforme</div>
+            <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}>
+              <div style={S.badge}><div style={S.badgeDot}/>Statut : Actif · Bases posées</div>
+            </div>
+            <div style={{ fontSize:10, color:"rgba(255,255,255,.2)", letterSpacing:".04em" }}>↗ Cliquer pour configurer</div>
+          </div>
+        </div>
+        <div style={S.connector}/>
+        <div style={{ width:"75%", maxWidth:820, position:"relative", height:24 }}>
+          <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"rgba(255,255,255,.1)" }}/>
+          {[0,1,2,3].map(i => (
+            <div key={i} style={{ position:"absolute", top:0, left:`${12.5+i*25}%`, width:2, height:24, background:"rgba(255,255,255,.1)", transform:"translateX(-50%)" }}/>
+          ))}
+        </div>
+        <div style={{ height:8 }}/>
+        <div style={S.poles}>
+          {poles.map((p,i) => (
+            <div key={i} style={S.pole}>
+              <div style={S.poleLock}>🔒</div>
+              <div style={{ fontSize:24, marginBottom:8 }}>{p.icon}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:"rgba(255,255,255,.6)", marginBottom:4 }}>{p.name}</div>
+              <div style={{ display:"inline-block", fontSize:10, fontWeight:700, color:"rgba(255,255,255,.25)", background:"rgba(255,255,255,.05)", borderRadius:100, padding:"2px 8px" }}>0/200 agents</div>
+              <div style={{ display:"block", marginTop:8, fontSize:9, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".06em" }}>Verrouillé</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {panelOpen && (
+        <>
+          <div style={S.overlay} onClick={() => setPanelOpen(false)}/>
+          <div style={S.panel}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+              <div>
+                <div style={{ fontFamily:"serif", fontSize:22, color:"#F5F0EB", marginBottom:4 }}>🛡️ Guard Auto</div>
+                <div style={{ fontSize:12, color:"#6B635C" }}>Panneau de Configuration</div>
+              </div>
+              <button style={S.closeBtn} onClick={() => setPanelOpen(false)}>✕</button>
+            </div>
+            <div style={S.statusCard}>
+              <div style={{ width:10, height:10, borderRadius:"50%", background:"#4CAF87", boxShadow:"0 0 8px #4CAF87", flexShrink:0 }}/>
+              <div style={{ fontSize:13, color:"#4CAF87", fontWeight:600 }}>Système initialisé · Bases posées</div>
+            </div>
+            <div style={S.waitingCard}>
+              <div style={{ fontSize:32, marginBottom:10, opacity:.4 }}>⚙️</div>
+              <div style={{ fontSize:13, color:"rgba(255,255,255,.3)", lineHeight:1.6 }}>Système initialisé.<br/>En attente des modules de surveillance.</div>
+            </div>
+            {[["Version","Guard Auto v0.1"],["Mode","Statique · Phase 1"],["Pôles actifs","0 / 4"],["Agents déployés","0 / 800"],["Dernière MàJ","Aujourd'''hui"]].map(([l,v],i) => (
+              <div key={i} style={S.infoRow}>
+                <span style={{ color:"#6B635C" }}>{l}</span>
+                <span style={{ color:"#A89F96", fontWeight:600 }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function ModulesCatalogue({ mods, setMods, showToast }) {
   const [creating, setCreating] = useState(false);
