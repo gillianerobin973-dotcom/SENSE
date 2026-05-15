@@ -314,7 +314,7 @@ function SuperAdmin() {
     { id:"tenants", label:"Tenants", icon:"⬡" },
     { id:"create", label:"Nouveau Tenant", icon:"+" },
     { id:"modules", label:"Modules", icon:"⊞" },
-    { id:"security", label:"Sécurité (Arbre)", icon:"🛡️" },
+    { id:"security", label:"Écosystème IA", icon:"🌳" },
     { id:"audit", label:"Audit Log", icon:"⊙" },
   ];
 
