@@ -1171,101 +1171,326 @@ function BottomNav({ screen, setScreen }) {
 // AUTH — Page Login NovaCaisse
 // ══════════════════════════════════════════════════════════════════════
 
+
 function SecurityTree() {
   const [panelOpen, setPanelOpen] = useState(false);
-  const S = {
-    title: { fontFamily:"serif", fontSize:28, color:"#F5F0EB", marginBottom:6 },
-    sub: { fontSize:13, color:"#6B635C", marginBottom:32 },
-    tree: { display:"flex", flexDirection:"column", alignItems:"center", gap:0 },
-    connector: { width:2, height:40, background:"rgba(255,255,255,.1)" },
-    hub: { border:"2px dashed rgba(255,255,255,.15)", borderRadius:14, padding:"18px 32px", textAlign:"center", color:"rgba(255,255,255,.3)", fontSize:13, fontWeight:600, background:"rgba(255,255,255,.02)", minWidth:320 },
-    hubLabel: { fontSize:11, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 },
-    generalWrap: { cursor:"pointer" },
-    general: { background:"linear-gradient(135deg,rgba(255,140,105,.12),rgba(232,112,74,.06))", border:"1.5px solid rgba(255,140,105,.35)", borderRadius:16, padding:"22px 36px", textAlign:"center", minWidth:300, boxShadow:"0 8px 32px rgba(255,140,105,.12)", transition:"all .2s", position:"relative" },
-    generalTitle: { fontSize:18, fontWeight:800, color:"#F5F0EB", marginBottom:6 },
-    badge: { display:"inline-flex", alignItems:"center", gap:6, padding:"4px 12px", borderRadius:100, background:"rgba(76,175,135,.15)", border:"1px solid rgba(76,175,135,.3)", color:"#4CAF87", fontSize:11, fontWeight:700 },
-    badgeDot: { width:6, height:6, borderRadius:"50%", background:"#4CAF87", boxShadow:"0 0 6px #4CAF87" },
-    poles: { display:"flex", gap:16, justifyContent:"center", width:"100%", maxWidth:820 },
-    pole: { flex:1, background:"rgba(255,255,255,.025)", border:"1px solid rgba(255,255,255,.07)", borderRadius:12, padding:"16px 12px", textAlign:"center", opacity:.7, position:"relative" },
-    poleLock: { position:"absolute", top:10, right:10, fontSize:11, color:"rgba(255,255,255,.2)" },
-    overlay: { position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.5)", zIndex:998, backdropFilter:"blur(4px)" },
-    panel: { position:"fixed", top:0, right:0, bottom:0, width:380, background:"#161513", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"32px 28px", boxShadow:"-8px 0 40px rgba(0,0,0,.4)", display:"flex", flexDirection:"column", gap:20 },
-    closeBtn: { width:32, height:32, borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:16, cursor:"pointer" },
-    statusCard: { background:"rgba(76,175,135,.06)", border:"1px solid rgba(76,175,135,.15)", borderRadius:10, padding:"14px 16px", display:"flex", alignItems:"center", gap:12 },
-    waitingCard: { background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.06)", borderRadius:10, padding:"20px 16px", textAlign:"center" },
-    infoRow: { display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,.05)", fontSize:13 },
+  const [panelTarget, setPanelTarget] = useState("general");
+  const [killed, setKilled] = useState(false);
+  const [scenario, setScenario] = useState(null);
+  const [scenarioSteps, setScenarioSteps] = useState([]);
+
+  const scenarios = {
+    finance: {
+      label:"Incident Mineur Finance",
+      color:"#4CAF87",
+      steps:[
+        "1. L'Agent MRR repère un décalage de 130 €",
+        "2. Le Tribunal valide la demande de correction",
+        "3. L'Agent Réparateur corrige la base de données",
+        "4. Le Général confirme le retour au Vert ✅"
+      ]
+    },
+    saboteur: {
+      label:"Attaque du Saboteur",
+      color:"#F59E0B",
+      steps:[
+        "1. L'Agent Saboteur injecte un faux virus dans le système",
+        "2. L'arbre clignote en Orange 🟠 — alerte déclenchée",
+        "3. Le Général Guard Auto intercepte et bloque l'attaque",
+        "4. Retour à la normale — menace neutralisée ✅"
+      ]
+    },
+    alerte: {
+      label:"Alerte Majeure Humaine",
+      color:"#E05252",
+      steps:[
+        "1. Tentative d'anomalie critique détectée",
+        "2. Le Tribunal refuse de trancher seul",
+        "3. Le système passe au Rouge 🔴",
+        "4. Intervention de l'Admin humain requise ⚠️"
+      ]
+    }
   };
+
+  function runScenario(key) {
+    setScenario(key);
+    setScenarioSteps([]);
+    const steps = scenarios[key].steps;
+    steps.forEach((step, i) => {
+      setTimeout(() => {
+        setScenarioSteps(p => [...p, step]);
+      }, i * 900);
+    });
+  }
+
+  function openPanel(target) {
+    setPanelTarget(target);
+    setPanelOpen(true);
+    setScenario(null);
+    setScenarioSteps([]);
+  }
+
+  const S = {
+    root: { position:"relative", opacity: killed ? .4 : 1, transition:"opacity .5s", filter: killed ? "grayscale(1)" : "none" },
+    header: { display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:32 },
+    title: { fontFamily:"serif", fontSize:28, color:"#F5F0EB", marginBottom:6 },
+    sub: { fontSize:13, color:"#6B635C" },
+    killBtn: {
+      padding:"10px 18px", borderRadius:10,
+      background: killed ? "rgba(76,175,135,.15)" : "rgba(224,82,82,.15)",
+      border: `1.5px solid ${killed?"rgba(76,175,135,.4)":"rgba(224,82,82,.4)"}`,
+      color: killed ? "#4CAF87" : "#E05252",
+      fontFamily:"inherit", fontSize:12, fontWeight:800, cursor:"pointer",
+      animation: killed ? "none" : "pulse 2s infinite",
+      letterSpacing:".02em",
+    },
+    tree: { display:"flex", flexDirection:"column", alignItems:"center", gap:0 },
+    connector: { width:2, height:36, background:"rgba(255,255,255,.1)" },
+    hConnector: { height:2, background:"rgba(255,255,255,.1)" },
+
+    // Tribunal
+    tribunal: {
+      border:"2px solid rgba(168,139,250,.3)", borderRadius:14,
+      padding:"14px 28px", textAlign:"center",
+      background:"rgba(168,139,250,.04)", minWidth:280,
+      position:"relative",
+    },
+    tribunalLabel: { fontSize:10, color:"rgba(168,139,250,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 },
+    tribunalTitle: { fontSize:15, fontWeight:700, color:"rgba(168,139,250,.8)" },
+
+    // Niveau agents satellites + général
+    midRow: { display:"flex", alignItems:"center", gap:0, width:"100%", maxWidth:860, justifyContent:"center" },
+    satellite: (color) => ({
+      flex:1, maxWidth:180,
+      background:`rgba(${color},.06)`, border:`1px solid rgba(${color},.2)`,
+      borderRadius:12, padding:"14px 12px", textAlign:"center", cursor:"pointer",
+      transition:"all .2s",
+    }),
+    satIcon: { fontSize:22, marginBottom:6 },
+    satName: { fontSize:12, fontWeight:700, color:"#F5F0EB", marginBottom:4 },
+    satBadge: { fontSize:10, padding:"2px 8px", borderRadius:100, background:"rgba(255,255,255,.06)", color:"rgba(255,255,255,.3)", border:"1px solid rgba(255,255,255,.08)" },
+
+    // Général
+    general: {
+      background:"linear-gradient(135deg,rgba(255,140,105,.12),rgba(232,112,74,.06))",
+      border:"1.5px solid rgba(255,140,105,.4)", borderRadius:16,
+      padding:"20px 32px", textAlign:"center", minWidth:260,
+      boxShadow:"0 8px 32px rgba(255,140,105,.1)",
+      cursor:"pointer", transition:"all .2s", mx:24,
+    },
+    generalTitle: { fontSize:17, fontWeight:800, color:"#F5F0EB", marginBottom:6 },
+    badge: (color, bg) => ({
+      display:"inline-flex", alignItems:"center", gap:5,
+      padding:"3px 10px", borderRadius:100,
+      background:bg, border:`1px solid ${color}`,
+      color:color, fontSize:10, fontWeight:700,
+    }),
+    dot: (color) => ({ width:6, height:6, borderRadius:"50%", background:color, boxShadow:`0 0 6px ${color}` }),
+
+    // Pôles
+    poles: { display:"flex", gap:12, justifyContent:"center", width:"100%", maxWidth:860 },
+    pole: (active) => ({
+      flex:1, borderRadius:12, padding:"14px 10px", textAlign:"center",
+      background: active ? "rgba(76,175,135,.08)" : "rgba(255,255,255,.02)",
+      border: active ? "1.5px solid rgba(76,175,135,.3)" : "1px solid rgba(255,255,255,.07)",
+      cursor: active ? "pointer" : "default",
+      transition:"all .2s", position:"relative", opacity: active ? 1 : .6,
+    }),
+    poleLock: { position:"absolute", top:8, right:8, fontSize:11, color:"rgba(255,255,255,.2)" },
+    poleIcon: { fontSize:22, marginBottom:6 },
+    poleName: (active) => ({ fontSize:12, fontWeight:700, color: active ? "#4CAF87" : "rgba(255,255,255,.5)", marginBottom:4 }),
+    poleCount: (active) => ({
+      display:"inline-block", fontSize:10, fontWeight:700,
+      color: active ? "#4CAF87" : "rgba(255,255,255,.2)",
+      background: active ? "rgba(76,175,135,.1)" : "rgba(255,255,255,.04)",
+      borderRadius:100, padding:"2px 8px",
+      border: active ? "1px solid rgba(76,175,135,.2)" : "1px solid rgba(255,255,255,.06)",
+    }),
+    agentBadge: {
+      display:"block", marginTop:6, fontSize:9, color:"#4CAF87",
+      background:"rgba(76,175,135,.08)", borderRadius:4, padding:"3px 6px",
+      border:"1px solid rgba(76,175,135,.15)",
+    },
+
+    // Kill overlay
+    killOverlay: {
+      position:"fixed", top:0, left:0, right:0, bottom:0,
+      background:"rgba(0,0,0,.85)", zIndex:9990,
+      display:"flex", alignItems:"center", justifyContent:"center",
+      flexDirection:"column", gap:20,
+    },
+    killMsg: {
+      fontSize:22, fontWeight:900, color:"#E05252", textAlign:"center",
+      letterSpacing:".06em", lineHeight:1.4,
+      textShadow:"0 0 30px rgba(224,82,82,.5)",
+    },
+
+    // Panel
+    overlay: { position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.5)", zIndex:998, backdropFilter:"blur(4px)" },
+    panel: { position:"fixed", top:0, right:0, bottom:0, width:400, background:"#161513", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"28px 24px", boxShadow:"-8px 0 40px rgba(0,0,0,.4)", overflowY:"auto", display:"flex", flexDirection:"column", gap:16 },
+    closeBtn: { width:30, height:30, borderRadius:7, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:14, cursor:"pointer" },
+    scenBtn: (color) => ({ width:"100%", padding:"12px 16px", borderRadius:10, border:`1px solid ${color}30`, background:`${color}10`, color:color, fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer", textAlign:"left", marginBottom:6 }),
+    stepItem: (i) => ({ padding:"10px 14px", borderRadius:8, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.06)", fontSize:13, color:"#A89F96", animation:"fadeUp .3s ease both", animationDelay:`${i*.1}s` }),
+  };
+
   const poles = [
-    { icon:"🧾", name:"Pôle Caisse" }, { icon:"📦", name:"Pôle Stocks" },
-    { icon:"👥", name:"Pôle RH" },    { icon:"💰", name:"Pôle Finance" },
+    { icon:"🧾", name:"Pôle Caisse",   count:"0/200", active:false },
+    { icon:"📦", name:"Pôle Stocks",   count:"0/200", active:false },
+    { icon:"👥", name:"Pôle RH",       count:"0/200", active:false },
+    { icon:"💰", name:"Pôle Finance",  count:"1/200", active:true,  agent:"Agent 001 : Surveillance MRR (130€/mois)" },
   ];
+
   return (
     <div>
-      <div style={S.title}>🛡️ Sécurité — Arbre Logique</div>
-      <div style={S.sub}>Structure de supervision NovaCaisse · Phase 1 statique</div>
-      <div style={S.tree}>
-        <div style={S.hub}>
-          <div style={S.hubLabel}>Niveau 1 · Hub Suprême</div>
-          <div>⬜ Quartier Général Suprême</div>
-          <div style={{ fontSize:10, color:"rgba(255,255,255,.15)", marginTop:4 }}>[ En attente de déploiement ]</div>
+      <style>{`@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(224,82,82,.4)}50%{box-shadow:0 0 0 8px rgba(224,82,82,0)}} @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`}</style>
+
+      {/* Header */}
+      <div style={S.header}>
+        <div>
+          <div style={S.title}>🛡️ Sécurité — Arbre Logique</div>
+          <div style={S.sub}>Supervision NovaCaisse · {killed ? "🔴 SYSTÈME FIGÉ" : "🟢 Opérationnel"}</div>
         </div>
-        <div style={S.connector}/>
-        <div style={S.generalWrap} onClick={() => setPanelOpen(true)}>
-          <div style={S.general}>
-            <div style={{ fontSize:11, color:"rgba(255,140,105,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:6 }}>Niveau 2 · Commandant</div>
-            <div style={S.generalTitle}>🛡️ Général Guard Auto</div>
-            <div style={{ fontSize:12, color:"rgba(255,140,105,.7)", marginBottom:12 }}>Superviseur central de la plateforme</div>
-            <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}>
-              <div style={S.badge}><div style={S.badgeDot}/>Statut : Actif · Bases posées</div>
+        <button style={S.killBtn} onClick={() => setKilled(k => !k)}>
+          {killed ? "▶ RÉACTIVER LE SYSTÈME" : "🔴 ARRÊT D'URGENCE
+HARDWARE KILL SWITCH"}
+        </button>
+      </div>
+
+      {/* Kill overlay */}
+      {killed && (
+        <div style={S.killOverlay} onClick={() => setKilled(false)}>
+          <div style={{ fontSize:48 }}>🔴</div>
+          <div style={S.killMsg}>SYSTÈME FIGÉ PAR LE CRÉATEUR HUMAIN.<br/>TOUTES LES IA SONT DÉSACTIVÉES.</div>
+          <div style={{ fontSize:13, color:"rgba(255,255,255,.3)" }}>Cliquer pour réactiver</div>
+        </div>
+      )}
+
+      <div style={S.root}>
+        <div style={S.tree}>
+
+          {/* TRIBUNAL */}
+          <div style={S.tribunal}>
+            <div style={S.tribunalLabel}>Filtre d'Arbitrage · Niveau Suprême</div>
+            <div style={S.tribunalTitle}>⚖️ Pôle Tribunal</div>
+            <div style={{ fontSize:10, color:"rgba(168,139,250,.4)", marginTop:4 }}>🔒 Accès restreint</div>
+          </div>
+          <div style={S.connector}/>
+
+          {/* LIGNE SATELLITES + GÉNÉRAL */}
+          <div style={{ display:"flex", alignItems:"center", gap:16, width:"100%", maxWidth:860, justifyContent:"center" }}>
+
+            {/* Saboteur */}
+            <div style={{ flex:1, maxWidth:190, background:"rgba(245,158,11,.06)", border:"1px solid rgba(245,158,11,.2)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
+              <div style={{ fontSize:22, marginBottom:6 }}>🤖</div>
+              <div style={{ fontSize:12, fontWeight:700, color:"#F5F0EB", marginBottom:4 }}>Agent Saboteur</div>
+              <div style={{ fontSize:10, color:"rgba(245,158,11,.6)", marginBottom:6 }}>Chaos Monkey</div>
+              <div style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"rgba(245,158,11,.08)", color:"rgba(245,158,11,.5)", border:"1px solid rgba(245,158,11,.15)", display:"inline-block" }}>En veille</div>
             </div>
-            <div style={{ fontSize:10, color:"rgba(255,255,255,.2)", letterSpacing:".04em" }}>↗ Cliquer pour configurer</div>
+
+            <div style={{ width:24, height:2, background:"rgba(255,255,255,.1)" }}/>
+
+            {/* Général */}
+            <div style={S.general} onClick={() => openPanel("general")}>
+              <div style={{ fontSize:10, color:"rgba(255,140,105,.5)", textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>Commandant Central</div>
+              <div style={S.generalTitle}>🛡️ Général Guard Auto</div>
+              <div style={{ display:"flex", justifyContent:"center", gap:8, marginTop:8, flexWrap:"wrap" }}>
+                <div style={S.badge("rgba(76,175,135,.9)","rgba(76,175,135,.1)")}>
+                  <div style={S.dot("#4CAF87")}/>Actif · Bases posées
+                </div>
+              </div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,.2)", marginTop:8 }}>↗ Cliquer pour configurer</div>
+            </div>
+
+            <div style={{ width:24, height:2, background:"rgba(255,255,255,.1)" }}/>
+
+            {/* Réparateur */}
+            <div style={{ flex:1, maxWidth:190, background:"rgba(91,158,245,.06)", border:"1px solid rgba(91,158,245,.2)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
+              <div style={{ fontSize:22, marginBottom:6 }}>🔧</div>
+              <div style={{ fontSize:12, fontWeight:700, color:"#F5F0EB", marginBottom:4 }}>Agent Réparateur</div>
+              <div style={{ fontSize:10, color:"rgba(91,158,245,.6)", marginBottom:6 }}>Helper Auto</div>
+              <div style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"rgba(91,158,245,.08)", color:"rgba(91,158,245,.5)", border:"1px solid rgba(91,158,245,.15)", display:"inline-block" }}>En veille</div>
+            </div>
+          </div>
+
+          <div style={S.connector}/>
+
+          {/* Ligne branches vers pôles */}
+          <div style={{ width:"75%", maxWidth:860, position:"relative", height:24 }}>
+            <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"rgba(255,255,255,.1)" }}/>
+            {[0,1,2,3].map(i => (
+              <div key={i} style={{ position:"absolute", top:0, left:`${12.5+i*25}%`, width:2, height:24, background:"rgba(255,255,255,.1)", transform:"translateX(-50%)" }}/>
+            ))}
+          </div>
+          <div style={{ height:8 }}/>
+
+          {/* PÔLES */}
+          <div style={S.poles}>
+            {poles.map((p,i) => (
+              <div key={i} style={S.pole(p.active)} onClick={() => p.active && openPanel("finance")}>
+                {!p.active && <div style={S.poleLock}>🔒</div>}
+                <div style={S.poleIcon}>{p.icon}</div>
+                <div style={S.poleName(p.active)}>{p.name}</div>
+                <div style={S.poleCount(p.active)}>{p.count} agents</div>
+                {p.agent && <div style={S.agentBadge}>{p.agent}</div>}
+                {!p.active && <div style={{ display:"block", marginTop:6, fontSize:9, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".06em" }}>Verrouillé</div>}
+              </div>
+            ))}
           </div>
         </div>
-        <div style={S.connector}/>
-        <div style={{ width:"75%", maxWidth:820, position:"relative", height:24 }}>
-          <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"rgba(255,255,255,.1)" }}/>
-          {[0,1,2,3].map(i => (
-            <div key={i} style={{ position:"absolute", top:0, left:`${12.5+i*25}%`, width:2, height:24, background:"rgba(255,255,255,.1)", transform:"translateX(-50%)" }}/>
-          ))}
-        </div>
-        <div style={{ height:8 }}/>
-        <div style={S.poles}>
-          {poles.map((p,i) => (
-            <div key={i} style={S.pole}>
-              <div style={S.poleLock}>🔒</div>
-              <div style={{ fontSize:24, marginBottom:8 }}>{p.icon}</div>
-              <div style={{ fontSize:13, fontWeight:700, color:"rgba(255,255,255,.6)", marginBottom:4 }}>{p.name}</div>
-              <div style={{ display:"inline-block", fontSize:10, fontWeight:700, color:"rgba(255,255,255,.25)", background:"rgba(255,255,255,.05)", borderRadius:100, padding:"2px 8px" }}>0/200 agents</div>
-              <div style={{ display:"block", marginTop:8, fontSize:9, color:"rgba(255,255,255,.2)", textTransform:"uppercase", letterSpacing:".06em" }}>Verrouillé</div>
-            </div>
-          ))}
-        </div>
       </div>
+
+      {/* PANEL */}
       {panelOpen && (
         <>
           <div style={S.overlay} onClick={() => setPanelOpen(false)}/>
           <div style={S.panel}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
               <div>
-                <div style={{ fontFamily:"serif", fontSize:22, color:"#F5F0EB", marginBottom:4 }}>🛡️ Guard Auto</div>
+                <div style={{ fontFamily:"serif", fontSize:20, color:"#F5F0EB", marginBottom:3 }}>
+                  {panelTarget === "general" ? "🛡️ Général Guard Auto" : "💰 Pôle Finance"}
+                </div>
                 <div style={{ fontSize:12, color:"#6B635C" }}>Panneau de Configuration</div>
               </div>
               <button style={S.closeBtn} onClick={() => setPanelOpen(false)}>✕</button>
             </div>
-            <div style={S.statusCard}>
-              <div style={{ width:10, height:10, borderRadius:"50%", background:"#4CAF87", boxShadow:"0 0 8px #4CAF87", flexShrink:0 }}/>
+
+            <div style={{ background:"rgba(76,175,135,.06)", border:"1px solid rgba(76,175,135,.15)", borderRadius:10, padding:"12px 14px", display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"#4CAF87", boxShadow:"0 0 8px #4CAF87" }}/>
               <div style={{ fontSize:13, color:"#4CAF87", fontWeight:600 }}>Système initialisé · Bases posées</div>
             </div>
-            <div style={S.waitingCard}>
-              <div style={{ fontSize:32, marginBottom:10, opacity:.4 }}>⚙️</div>
-              <div style={{ fontSize:13, color:"rgba(255,255,255,.3)", lineHeight:1.6 }}>Système initialisé.<br/>En attente des modules de surveillance.</div>
-            </div>
-            {[["Version","Guard Auto v0.1"],["Mode","Statique · Phase 1"],["Pôles actifs","0 / 4"],["Agents déployés","0 / 800"],["Dernière MàJ","Aujourd'''hui"]].map(([l,v],i) => (
-              <div key={i} style={S.infoRow}>
-                <span style={{ color:"#6B635C" }}>{l}</span>
-                <span style={{ color:"#A89F96", fontWeight:600 }}>{v}</span>
-              </div>
+
+            <div style={{ fontSize:13, fontWeight:700, color:"#F5F0EB", marginBottom:4 }}>🎯 Salle d'Entraînement des Agents</div>
+            <div style={{ fontSize:12, color:"#6B635C", marginBottom:10 }}>Simulez des scénarios pour tester l'arbre de sécurité</div>
+
+            {[
+              { key:"finance", label:"💚 Incident Mineur Finance", color:"#4CAF87" },
+              { key:"saboteur", label:"🟠 Attaque du Saboteur", color:"#F59E0B" },
+              { key:"alerte", label:"🔴 Alerte Majeure Humaine", color:"#E05252" },
+            ].map(sc => (
+              <button key={sc.key} style={S.scenBtn(sc.color)} onClick={() => runScenario(sc.key)}>
+                {sc.label}
+              </button>
             ))}
+
+            {scenario && (
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:scenarios[scenario].color, marginBottom:4 }}>
+                  Simulation : {scenarios[scenario].label}
+                </div>
+                {scenarioSteps.map((step, i) => (
+                  <div key={i} style={S.stepItem(i)}>{step}</div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop:8 }}>
+              {[["Version","Guard Auto v0.1"],["Mode","Statique · Phase 1"],["Pôles actifs","1 / 4"],["Agents déployés","1 / 800"]].map(([l,v],i) => (
+                <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom:"1px solid rgba(255,255,255,.05)", fontSize:13 }}>
+                  <span style={{ color:"#6B635C" }}>{l}</span>
+                  <span style={{ color:"#A89F96", fontWeight:600 }}>{v}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
