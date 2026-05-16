@@ -1359,7 +1359,7 @@ function SecurityTree() {
   }
 
   return (
-    <div style={{ background:"#0A0908", minHeight:"100vh", padding:"0 0 40px" }}>
+    <div style={{ background:"#070706", minHeight:"100vh", padding:"0 0 40px" }}>
       <style>{"@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}} @keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}} @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.08)}} @keyframes flowDown{0%{top:-40%}100%{top:100%}} .blink{animation:blink 1s infinite} .fadeUp{animation:fadeUp .3s ease both}"}</style>
 
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", borderBottom:"1px solid #1a1a1a", background:"#0D0C0B" }}>
@@ -1409,7 +1409,7 @@ function SecurityTree() {
                   <div style={{ display:"flex", justifyContent:"center", alignItems:"center", gap:4, padding:"3px 0" }}>
                     <div style={{ width:"60%", height:1, background:"rgba(255,255,255,.04)" }}/>
                     <div style={{ fontSize:8, color:seve!=="green"?"rgba(245,158,11,.4)":"rgba(76,175,135,.3)", fontFamily:"monospace" }} className={seve!=="green"?"blink":""}>
-                      {seve!=="green"?"!! ALERTE >>":">>> seve >>>"}
+                      {seve!=="green"?"▼ ALERTE":"▼ seve"}
                     </div>
                     <div style={{ width:"60%", height:1, background:"rgba(255,255,255,.04)" }}/>
                   </div>
