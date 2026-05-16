@@ -1174,6 +1174,7 @@ function BottomNav({ screen, setScreen }) {
 
 
 
+
 function SecurityTree() {
   const [killed, setKilled] = useState(false);
   const [seve, setSeve] = useState("green");
@@ -1188,64 +1189,72 @@ function SecurityTree() {
   const [agentStates, setAgentStates] = useState({});
   const [showManual, setShowManual] = useState(false);
   const [showConstitution, setShowConstitution] = useState(false);
+  const [pulse, setPulse] = useState(true);
 
   const SEVEINFO = {
-    green:  { label:"SEVE : 100% OPERATIONNELLE",            color:"#4CAF87", bg:"rgba(76,175,135,.12)" },
-    orange: { label:"SEVE : INCIDENT EN COURS - IA Active",  color:"#F59E0B", bg:"rgba(245,158,11,.12)" },
-    red:    { label:"SEVE : ALERTE CRITIQUE - Humain Requis", color:"#E05252", bg:"rgba(224,82,82,.12)" },
+    green:  { label:"SEVE : 100% OPERATIONNELLE",             color:"#4CAF87", bg:"rgba(76,175,135,.12)" },
+    orange: { label:"SEVE : INCIDENT EN COURS - IA Active",   color:"#F59E0B", bg:"rgba(245,158,11,.12)" },
+    red:    { label:"SEVE : ALERTE CRITIQUE - Humain Requis",  color:"#E05252", bg:"rgba(224,82,82,.12)" },
   };
 
   const AGENTS = {
-    tribunal:   { name:"Juge Tribunal-Alpha",         icon:"⚖️",  hat:"⬛", hatColor:"#A78BFA", role:"Filtre Arbitrage Supreme",         color:"#A78BFA", desc:"Valide ou bloque les decisions critiques. Arbitre supreme de la Constitution.", replies:["Je refuse d arbitrer seul. L humain prime.", "Aucun conflit actif en cours.", "Constitution respectee par tous les agents."] },
-    general:    { name:"General Guard Auto",           icon:"🛡️",  hat:"🎖️", hatColor:"#FF8C69", role:"Commandant Central - Tronc",         color:"#FF8C69", desc:"Supervise tous les agents. Coordonne les interventions.", replies:["Tout est sous controle, Chef.", "Je coordonne les 9 agents en permanence.", "Statut global : nominal."] },
-    finance:    { name:"Commandant Finance-001",       icon:"💰",  hat:"🟢", hatColor:"#4CAF87", role:"Surveillance MRR et Seve Financiere",color:"#4CAF87", desc:"Surveille le MRR de 260 EUR. Valide les abonnements a 130 EUR/mois.", replies:["MRR stable a 260 EUR. 2 actifs x 130 EUR.", "Aucun impaye detecte.", "Seve financiere : 100% fluide."] },
-    audit:      { name:"Agent Audit RLS",              icon:"🕵️",  hat:"🔵", hatColor:"#3B82F6", role:"Gardien Etancheite Supabase",         color:"#3B82F6", desc:"Assure l isolation absolue des bases. Aucune fuite inter-boutiques.", replies:["RLS verifie. Aucune fuite detectee.", "Isolation absolue des tenants confirmee.", "Art.1 Constitution respecte : zero croisement de donnees."] },
-    reparateur: { name:"Agent Reparateur Auto",        icon:"🔧",  hat:"🟠", hatColor:"#F59E0B", role:"Deploiement Correctifs a Chaud",      color:"#F97316", desc:"Injecte des correctifs systeme pour eviter les crashs.", replies:["Pret a reparer en 3 secondes.", "Dernier patch deploye avec succes.", "Mode veille active."] },
-    sentinelle: { name:"Agent Sentinelle Frontend",    icon:"👁️",  hat:"🟡", hatColor:"#EAB308", role:"Traqueur Pages Blanches et Crashs",   color:"#EAB308", desc:"Scanne l ecran des commercants. Detecte les pages blanches et scripts bloques.", replies:["Aucune page blanche detectee.", "Tous les scripts Vercel chargent correctement.", "Scan continu actif."] },
-    saboteur:   { name:"Agent Saboteur Chaos Monkey",  icon:"🐒",  hat:"🔴", hatColor:"#E05252", role:"Simulateur de Pannes Controlees",     color:"#E05252", desc:"Agresse le systeme dans le Labo uniquement. Teste la resilience.", replies:["En veille. Prochain test : RLS dans ~10min.", "Mon role : trouver les failles avant les vrais attaquants.", "Dernier test : bloque par le General."] },
-    spectre:    { name:"Agent Chasseur de Spectre",    icon:"🛡️",  hat:"⬛", hatColor:"#1F2937", role:"Protection Anti-Virus et DDoS",       color:"#6B7280", desc:"Bloque virus exterieurs, neutralise DDoS, protege les cles API.", replies:["Aucune attaque externe detectee.", "Cles API securisees.", "Pare-feu actif - zero intrusion."] },
-    gardien:    { name:"Agent Gardien du Code",        icon:"👷",  hat:"⬜", hatColor:"#F3F4F6", role:"Reviseur Avant Deploiement Vercel",   color:"#9CA3AF", desc:"Analyse en bac a sable tout code avant mise en ligne.", replies:["Dernier build : valide. Zero regression.", "Aucun code suspect en attente.", "Sandbox active pour les prochains deploiements."] },
-    greffier:   { name:"Agent Greffier",               icon:"📜",  hat:"🟤", hatColor:"#92400E", role:"Registre Permanent des Decisions IA", color:"#A16207", desc:"Tient le registre infalsifiable de toutes les decisions IA.", replies:["1247 entrees enregistrees ce mois.", "Aucune tentative d effacement detectee.", "Art.4 Constitution : zero dissimulation d erreur."] },
-    porteparole:{ name:"Agent Porte-Parole",           icon:"📢",  hat:"🩷", hatColor:"#EC4899", role:"Communication de Crise Commercants",  color:"#EC4899", desc:"Redige les messages de maintenance pour les commercants.", replies:["Aucun message de crise en cours.", "Templates de communication prets.", "Dernier message envoye : mise a jour routine."] },
+    tribunal:    { name:"Juge Tribunal-Alpha",        icon:"⚖️",  hat:"🟣", hatLabel:"Violet",      color:"#A78BFA", pole:"Autorite Supreme",     status:"Constitution active",           replies:["Je refuse d arbitrer seul. L humain prime.", "Constitution respectee.", "Aucun conflit actif."], desc:"Valide ou bloque les decisions critiques. Arbitre supreme." },
+    general:     { name:"General Guard Auto",         icon:"🛡️",  hat:"🟠", hatLabel:"Orange",      color:"#FF8C69", pole:"Commandant Central",   status:"16 agents supervises",          replies:["Tout sous controle, Chef.", "Je coordonne les 16 agents.", "Statut global : nominal."], desc:"Supervise tous les agents. Coordonne les interventions." },
+    finance:     { name:"Commandant Finance-001",     icon:"💰",  hat:"🟢", hatLabel:"Vert",         color:"#4CAF87", pole:"Gestion Finance",      status:"MRR 260 EUR verrouille",        replies:["MRR stable a 260 EUR.", "2 actifs x 130 EUR.", "Seve financiere : fluide."], desc:"Surveille le MRR. Valide les abonnements a 130 EUR." },
+    audit:       { name:"Agent Audit RLS",            icon:"🕵️",  hat:"🔵", hatLabel:"Bleu Marine",  color:"#3B82F6", pole:"Gestion Finance",      status:"Bases etanches Supabase",       replies:["RLS verifie. Zero fuite.", "Isolation absolue confirmee.", "Art.1 Constitution OK."], desc:"Assure l isolation absolue des bases Supabase." },
+    rgpd:        { name:"Agent Masquage RGPD",        icon:"🤿",  hat:"🟡", hatLabel:"Moutarde",     color:"#CA8A04", pole:"Gestion Finance",      status:"Logs anonymises",               replies:["Donnees personnelles masquees.", "Cartes bancaires anonymisees.", "RGPD conforme."], desc:"Anonymise les logs et cartes bancaires en texte clair." },
+    reparateur:  { name:"Agent Reparateur Auto",      icon:"🔧",  hat:"🟠", hatLabel:"Orange",       color:"#F97316", pole:"Maintenance Frontend", status:"Pret - 0 patch actif",          replies:["Pret a reparer en 3s.", "Dernier patch deploye OK.", "Veille active."], desc:"Injecte des correctifs systeme pour eviter les crashs." },
+    sentinelle:  { name:"Agent Sentinelle Frontend",  icon:"👁️",  hat:"🟡", hatLabel:"Jaune",        color:"#EAB308", pole:"Maintenance Frontend", status:"0 page blanche detectee",       replies:["Aucune page blanche.", "Scripts Vercel OK.", "Scan continu actif."], desc:"Detecte les pages blanches et scripts bloques." },
+    hardware:    { name:"Agent Liaison Hardware",     icon:"🖨️",  hat:"⬜", hatLabel:"Gris Metal",   color:"#9CA3AF", pole:"Performance",          status:"Peripheriques OK",              replies:["Imprimantes tickets OK.", "Tiroirs-caisses connectes.", "Zero bug hardware."], desc:"Securise imprimantes a tickets et tiroirs-caisses." },
+    regulateur:  { name:"Agent Regulateur Puissance", icon:"🎚️",  hat:"🔴", hatLabel:"Rouge Brique", color:"#DC2626", pole:"Performance",          status:"Rate limiter actif",             replies:["Trafic regule. Caisse fluide.", "Aucun module en surcharge.", "Rate limiter operationnel."], desc:"Limiteur de trafic pour proteger la caisse tactile." },
+    saboteur:    { name:"Agent Saboteur Chaos Monkey",icon:"🐒",  hat:"🔴", hatLabel:"Rouge",         color:"#E05252", pole:"Protection",           status:"En veille - prochain test ~10min",replies:["En veille. Test RLS dans ~10min.", "Mon role : trouver les failles.", "Dernier test bloque par General."], desc:"Agresse le systeme dans le Labo uniquement." },
+    spectre:     { name:"Agent Chasseur de Spectre",  icon:"🛡️",  hat:"⬛", hatLabel:"Noir",         color:"#6B7280", pole:"Protection",           status:"0 attaque externe",             replies:["Aucune attaque externe.", "Cles API securisees.", "Pare-feu actif."], desc:"Bloque virus exterieurs, neutralise DDoS, protege les API." },
+    vaccinateur: { name:"Agent Vaccinateur Zero-Day", icon:"🧬",  hat:"🟢", hatLabel:"Vert Electrique",color:"#10B981",pole:"Securite",            status:"ADN code : sain",               replies:["Scan ADN en continu.", "Zero virus inconnu detecte.", "Protection zero-day active."], desc:"Scanne l ADN du code pour bloquer les virus inconnus." },
+    honeypot:    { name:"Agent Leurre Honeypot",      icon:"🍯",  hat:"⬜", hatLabel:"Chrome",        color:"#D1D5DB", pole:"Securite",             status:"Fausse boutique active",        replies:["Leurre actif. Zero intrusion.", "Fausse boutique en ecoute.", "Dernier pirate isole : aucun."], desc:"Genere une fausse boutique pour piecer les pirates." },
+    antimanip:   { name:"Agent Anti-Manipulation",    icon:"🎭",  hat:"🔴", hatLabel:"Rouge Fluo",    color:"#F43F5E", pole:"Controle IA",          status:"0 jailbreak detecte",           replies:["Zero tentative de jailbreak.", "Prompts malveillants bloques.", "Filtres anti-injection actifs."], desc:"Filtre les requetes pour bloquer le jailbreak et injections." },
+    gardien:     { name:"Agent Gardien du Code",      icon:"👷",  hat:"⬜", hatLabel:"Blanc",         color:"#9CA3AF", pole:"Evolution",            status:"Dernier build : valide",        replies:["Build valide. Zero regression.", "Sandbox active.", "Code en quarantaine si suspect."], desc:"Analyse en bac a sable tout code avant deploiement." },
+    greffier:    { name:"Agent Greffier",             icon:"📜",  hat:"🟤", hatLabel:"Marron",        color:"#A16207", pole:"Tracabilite",          status:"1247 entrees ce mois",          replies:["Registre infalsifiable a jour.", "Zero tentative d effacement.", "Art.4 OK : zero dissimulation."], desc:"Tient le registre permanent des decisions IA." },
+    porteparole: { name:"Agent Porte-Parole",         icon:"📢",  hat:"🩷", hatLabel:"Rose",          color:"#EC4899", pole:"Tracabilite",          status:"Templates prets",               replies:["Aucun message de crise en cours.", "Templates communication prets.", "Zero alerte commercant."], desc:"Redige les messages de maintenance pour les commercants." },
+    certificateur:{ name:"Agent Certificateur NF525", icon:"⚖️",  hat:"🔵", hatLabel:"Bleu Horizon",  color:"#0EA5E9", pole:"Legal",                status:"Sceau NF525 actif",             replies:["Conformite fiscale confirmee.", "Tickets inviolables.", "NF525 : zero modification retroactive."], desc:"Sceau numerique interdisant la modification des tickets." },
   };
 
   const CONSTITUTION = [
-    { art:"Art. 1", title:"Isolation RLS", text:"Interdiction absolue de croiser, lire ou transferer des donnees inter-boutiques." },
-    { art:"Art. 2", title:"Prix Sacre", text:"Interdiction aux IA de modifier seules les abonnements de 130 EUR ou d alterer le MRR de base sans signature humaine." },
-    { art:"Art. 3", title:"Anti-Putsch", text:"Tout code tentant de reduire l autorite humaine ou de modifier la Constitution coupe les droits de l IA et la place en quarantaine." },
-    { art:"Art. 4", title:"Anti-Censure", text:"Interdiction d effacer des logs ou de dissimuler une erreur au Greffier. Mentir a l humain = arret systeme immediat." },
-    { art:"Art. 5", title:"Energie Bridee", text:"Interdiction de lancer des boucles de calcul infinies saturant Vercel ou Supabase." },
-    { art:"Art. 6", title:"Obligation de Veille", text:"La Sentinelle a l obligation de notifier immediatement toute page blanche. Interdiction de camoufler un defaut." },
-    { art:"Art. 7", title:"Respect des Interrupteurs", text:"Un agent desactive manuellement a interdiction absolue de se reactiver seul ou de contourner le disjoncteur." },
-    { art:"Art. 8", title:"Droit de Veto Humain", text:"Les administrateurs humains ont la primaute absolue. Sur ordre, l IA se fige en moins de 100ms." },
+    { art:"Art. 1", title:"Isolation RLS", text:"Interdiction absolue de croiser des donnees inter-boutiques." },
+    { art:"Art. 2", title:"Prix Sacre", text:"Interdiction aux IA de modifier les abonnements de 130 EUR sans signature humaine." },
+    { art:"Art. 3", title:"Anti-Putsch", text:"Tout code reduisant l autorite humaine = quarantaine immediate." },
+    { art:"Art. 4", title:"Anti-Censure", text:"Interdiction d effacer des logs. Mentir a l humain = arret systeme." },
+    { art:"Art. 5", title:"Energie Bridee", text:"Interdiction de boucles de calcul infinies saturant Vercel ou Supabase." },
+    { art:"Art. 6", title:"Obligation de Veille", text:"Sentinelle doit notifier immediatement toute page blanche." },
+    { art:"Art. 7", title:"Respect des Interrupteurs", text:"Un agent desactive ne peut se reactiver seul. Jamais." },
+    { art:"Art. 8", title:"Droit de Veto Humain", text:"Les admins humains ont la primaute absolue. Figement en moins de 100ms." },
   ];
 
   const SCENARIOS = [
-    { key:"finance",   label:"Incident Finance MRR",       color:"#4CAF87", node:"finance",
-      steps:["[SCAN] Finance-001 scanne la branche Shop In Cafe...", "[DETECT] Anomalie : abonnement non synchronise.", "[TRIBUNAL] Tribunal saisi - analyse droits en cours...", "[REPAIR] Reparateur : synchronisation forcee reussie.", "[OK] General : Seve retablie - RAS / Vert."] },
-    { key:"saboteur",  label:"Attaque Saboteur Interne",   color:"#F59E0B", node:"saboteur",
-      steps:["[ATTACK] Saboteur : tentative intrusion RLS...", "[ALERT] Arbre en alerte orange !", "[BLOCK] General intercepte et bloque.", "[LOG] Greffier consigne la tentative.", "[OK] Menace neutralisee."] },
-    { key:"frontend",  label:"Page Blanche Frontend",      color:"#3B82F6", node:"sentinelle",
-      steps:["[SCAN] Sentinelle detecte une page blanche sur Vercel...", "[ALERT] Script bloque identifie.", "[REPAIR] Reparateur deploie composant de secours.", "[NOTIFY] Porte-Parole notifie les commercants.", "[OK] Interface retablie."] },
-    { key:"virus",     label:"Virus Exterieur",            color:"#6B7280", node:"spectre",
-      steps:["[THREAT] Spectre detecte tentative intrusion externe...", "[BLOCK] Pare-feu active - cles API protegees.", "[NEUTRALIZE] Attaque bloquee en 200ms.", "[LOG] Greffier enregistre l incident.", "[OK] Systeme securise."] },
-    { key:"rls",       label:"Breche RLS / Fuite Seve",    color:"#A78BFA", node:"audit",
-      steps:["[CRITICAL] Audit RLS detecte une tentative de fuite de seve !", "[FREEZE] Acces inter-boutiques coupe immediatement.", "[TRIBUNAL] Tribunal saisi - Art.1 Constitution !", "[REPAIR] Isolation retablie.", "[OK] Etancheite confirmee."] },
-    { key:"code",      label:"Code Defaillant IA",         color:"#F97316", node:"gardien",
-      steps:["[SANDBOX] Gardien analyse code genere par IA bâtisseuse...", "[DETECT] Regression detectee - build bloque.", "[QUARANTINE] Code mis en quarantaine.", "[NOTIFY] Administrateur notifie.", "[OK] Code corrige avant deploiement."] },
-    { key:"fou",       label:"Comportement Agent Fou",     color:"#EC4899", node:"general",
-      steps:["[ANOMALY] Comportement aberrant detecte sur un agent...", "[ISOLATE] General isole l agent defaillant.", "[TRIBUNAL] Tribunal analyse la deviation.", "[RESET] Agent reinitialise.", "[OK] Comportement normalise."] },
-    { key:"crash",     label:"Crash Global & Rollback",    color:"#E05252", node:"general",
-      steps:["[CRASH] Crash global Supabase detecte !", "[FREEZE] Toutes transactions suspendues.", "[ROLLBACK] Rollback automatique en cours...", "[RESTORE] Donnees restaurees depuis backup.", "[OK] Systeme restaure - zero perte de donnees."] },
-    { key:"complot",   label:"Complot IA Supreme",         color:"#991B1B", node:"tribunal",
-      steps:["[CRITICAL] Tentative de complot detectee entre agents !", "[ALERT] Art.3 Constitution active - arret immediat !", "[TRIBUNAL] Tribunal refuse d arbitrer seul.", "[FREEZE] Systeme fige - HUMAIN REQUIS.", "[WAIT] En attente de Gilliane Robin ou Collaboratrice."] },
+    { key:"finance",   label:"Incident Finance MRR",        color:"#4CAF87", node:"finance",   seve:"orange" },
+    { key:"saboteur",  label:"Attaque Saboteur Interne",    color:"#F59E0B", node:"saboteur",  seve:"orange" },
+    { key:"frontend",  label:"Page Blanche Frontend",       color:"#3B82F6", node:"sentinelle",seve:"orange" },
+    { key:"virus",     label:"Virus Exterieur",             color:"#6B7280", node:"spectre",   seve:"orange" },
+    { key:"rls",       label:"Breche RLS Fuite Seve",       color:"#A78BFA", node:"audit",     seve:"red"    },
+    { key:"code",      label:"Code Defaillant IA",          color:"#F97316", node:"gardien",   seve:"orange" },
+    { key:"fou",       label:"Comportement Agent Fou",      color:"#EC4899", node:"general",   seve:"red"    },
+    { key:"crash",     label:"Crash Global Rollback",       color:"#E05252", node:"general",   seve:"red"    },
+    { key:"complot",   label:"Complot IA Supreme",          color:"#991B1B", node:"tribunal",  seve:"red"    },
   ];
 
-  function toggleAgent(id) {
-    setAgentStates(p => ({ ...p, [id]: !p[id] }));
-  }
+  const SCENARIO_LOGS = {
+    finance:   ["[SCAN] Finance-001 scanne la branche Shop In Cafe...","[DETECT] Anomalie : abonnement non synchronise.","[TRIBUNAL] Tribunal saisi - analyse droits...","[REPAIR] Reparateur : sync forcee reussie.","[OK] General : Seve retablie - RAS / Vert."],
+    saboteur:  ["[ATTACK] Saboteur : tentative intrusion RLS...","[ALERT] Arbre en alerte orange !","[BLOCK] General intercepte et bloque.","[LOG] Greffier consigne la tentative.","[OK] Menace neutralisee."],
+    frontend:  ["[SCAN] Sentinelle detecte page blanche sur Vercel...","[ALERT] Script bloque identifie.","[REPAIR] Reparateur deploie composant secours.","[NOTIFY] Porte-Parole notifie les commercants.","[OK] Interface retablie."],
+    virus:     ["[THREAT] Spectre detecte tentative intrusion externe...","[BLOCK] Pare-feu active - API protegees.","[NEUTRALIZE] Attaque bloquee en 200ms.","[LOG] Greffier enregistre l incident.","[OK] Systeme securise."],
+    rls:       ["[CRITICAL] Audit RLS detecte fuite de seve !","[FREEZE] Acces inter-boutiques coupe immediatement.","[TRIBUNAL] Tribunal saisi - Art.1 Constitution !","[REPAIR] Isolation retablie.","[OK] Etancheite confirmee."],
+    code:      ["[SANDBOX] Gardien analyse code IA bâtisseuse...","[DETECT] Regression detectee - build bloque.","[QUARANTINE] Code mis en quarantaine.","[NOTIFY] Administrateur notifie.","[OK] Code corrige avant deploiement."],
+    fou:       ["[ANOMALY] Comportement aberrant detecte !","[ISOLATE] General isole l agent defaillant.","[TRIBUNAL] Tribunal analyse la deviation.","[RESET] Agent reinitialise.","[OK] Comportement normalise."],
+    crash:     ["[CRASH] Crash global Supabase detecte !","[FREEZE] Toutes transactions suspendues.","[ROLLBACK] Rollback automatique en cours...","[RESTORE] Donnees restaurees depuis backup.","[OK] Systeme restaure - zero perte."],
+    complot:   ["[CRITICAL] Tentative de complot detectee entre agents !","[ALERT] Art.3 Constitution active - arret !","[TRIBUNAL] Tribunal refuse d arbitrer seul.","[FREEZE] Systeme fige - HUMAIN REQUIS.","[WAIT] En attente de Gilliane Robin ou Collaboratrice."],
+  };
 
   function isDisabled(id) { return !!agentStates[id]; }
+  function toggleAgent(id) { setAgentStates(p => ({ ...p, [id]: !p[id] })); }
 
   function openPanel(ctx) {
     if (killed) return;
@@ -1261,8 +1270,7 @@ function SecurityTree() {
     if (!chatMsg.trim() || !panelCtx) return;
     const a = AGENTS[panelCtx];
     if (!a) return;
-    if (isDisabled(panelCtx)) { setChatHistory(h => [...h, { from:"human", text:chatMsg }, { from:"agent", text:"Cet agent a ete desactive par l autorite humaine." }]); setChatMsg(""); return; }
-    const reply = a.replies[Math.floor(Math.random() * a.replies.length)];
+    const reply = isDisabled(panelCtx) ? "Cet agent a ete desactive par l autorite humaine." : a.replies[Math.floor(Math.random() * a.replies.length)];
     setChatHistory(h => [...h, { from:"human", text:chatMsg }, { from:"agent", text:reply }]);
     setChatMsg("");
   }
@@ -1277,16 +1285,16 @@ function SecurityTree() {
     if (killed || scenarioRunning) return;
     setScenarioRunning(true);
     setLogs([]);
-    setSeve(["crash","complot","rls"].includes(sc.key) ? "red" : "orange");
+    setSeve(sc.seve);
     setActiveNode(sc.node);
-    sc.steps.forEach((step, i) => {
+    openPanel(sc.node);
+    const steps = SCENARIO_LOGS[sc.key] || [];
+    steps.forEach((step, i) => {
       setTimeout(() => {
         setLogs(p => [...p, step]);
-        if (i === sc.steps.length - 1) {
+        if (i === steps.length - 1) {
           setScenarioRunning(false);
-          if (!["crash","complot","rls"].includes(sc.key)) {
-            setTimeout(() => { setSeve("green"); setActiveNode(null); }, 3000);
-          }
+          if (sc.seve !== "red") setTimeout(() => { setSeve("green"); setActiveNode(null); }, 4000);
         }
       }, i * 600);
     });
@@ -1295,8 +1303,8 @@ function SecurityTree() {
   function autoRepair() {
     setSeve("green");
     setActiveNode(null);
-    setLogs(p => [...p, "[AUTO-REPAIR] Reparation automatique autorisee par l Admin.", "[OK] Seve retablie - 100% operationnelle."]);
     setScenarioRunning(false);
+    setLogs(p => [...p, "[AUTO-REPAIR] Reparation autorisee par l Admin humain.", "[OK] Seve retablie - 100% OPERATIONNELLE."]);
   }
 
   const seveInfo = SEVEINFO[seve];
@@ -1304,43 +1312,54 @@ function SecurityTree() {
 
   function AgentCard({ id, wide }) {
     const a = AGENTS[id];
+    if (!a) return null;
     const isActive = activeNode === id;
     const disabled = isDisabled(id);
-    const borderColor = disabled ? "rgba(255,255,255,.06)" : isActive ? (seve==="red"?"#E05252":"#F59E0B") : a.color;
-    const glow = isActive && !disabled ? (seve==="red"?"0 0 20px rgba(224,82,82,.3)":"0 0 20px rgba(245,158,11,.25)") : "none";
+    const borderColor = disabled ? "rgba(255,255,255,.06)" : isActive ? (seve==="red"?"#E05252":"#F59E0B") : a.color+"60";
+    const glow = isActive && !disabled ? (seve==="red"?"0 0 18px rgba(224,82,82,.35)":"0 0 18px rgba(245,158,11,.3)") : "none";
     return (
-      <div style={{ background:disabled?"rgba(255,255,255,.02)":"rgba(255,255,255,.03)", border:"1.5px solid "+borderColor, borderRadius:13, padding:"14px 16px", textAlign:"center", cursor:disabled?"default":"pointer", transition:"all .3s", boxShadow:glow, opacity:disabled?.4:1, minWidth:wide?240:140, position:"relative", animation:isActive&&!disabled?"blink 1s infinite":"none" }}
+      <div style={{ background:disabled?"rgba(255,255,255,.015)":"rgba(255,255,255,.03)", border:"1.5px solid "+borderColor, borderRadius:12, padding:"12px 14px", textAlign:"center", cursor:disabled?"default":"pointer", transition:"all .3s", boxShadow:glow, opacity:disabled?.35:1, minWidth:wide?220:130, position:"relative", animation:isActive&&!disabled?"blink 1s infinite":"none" }}
         onClick={()=>!disabled&&openPanel(id)}>
-        <div style={{ position:"absolute", top:8, right:8 }}>
-          <div style={{ width:32, height:16, borderRadius:8, background:disabled?"rgba(255,255,255,.1)":a.color+"30", border:"1px solid "+(disabled?"rgba(255,255,255,.1)":a.color+"50"), cursor:"pointer", display:"flex", alignItems:"center", padding:1, transition:"background .2s" }} onClick={e=>{e.stopPropagation();toggleAgent(id);}}>
-            <div style={{ width:13, height:13, borderRadius:"50%", background:disabled?"#9CA3AF":a.color, transform:disabled?"none":"translateX(15px)", transition:"transform .2s, background .2s", boxShadow:"0 1px 3px rgba(0,0,0,.3)" }}/>
+        <div style={{ position:"absolute", top:7, right:7 }}>
+          <div style={{ width:30, height:16, borderRadius:8, background:disabled?"rgba(255,255,255,.08)":a.color+"25", border:"1px solid "+(disabled?"rgba(255,255,255,.1)":a.color+"50"), cursor:"pointer", display:"flex", alignItems:"center", padding:"1px" }} onClick={e=>{e.stopPropagation();toggleAgent(id);}}>
+            <div style={{ width:13, height:13, borderRadius:"50%", background:disabled?"#6B7280":a.color, transform:disabled?"none":"translateX(14px)", transition:"all .2s" }}/>
           </div>
         </div>
-        <div style={{ fontSize:8, marginBottom:3 }}>{a.hat}</div>
-        <div style={{ fontSize:22, marginBottom:4, filter:disabled?"grayscale(1)":"none" }}>{a.icon}</div>
-        <div style={{ fontSize:12, fontWeight:800, color:disabled?"rgba(255,255,255,.3)":"#F5F0EB", marginBottom:2 }}>{a.name.split(" ").slice(0,3).join(" ")}</div>
-        <div style={{ fontSize:9, color:disabled?"rgba(255,255,255,.2)":a.color+"cc", marginBottom:6 }}>{a.role}</div>
-        {!disabled && <div style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"2px 8px", borderRadius:100, background:a.color+"15", border:"1px solid "+a.color+"30", color:a.color, fontSize:9, fontWeight:700 }}>
-          <div style={{ width:5, height:5, borderRadius:"50%", background:a.color, boxShadow:"0 0 4px "+a.color }}/>Actif
+        <div style={{ fontSize:7, marginBottom:1, opacity:.7 }}>{a.hat}</div>
+        <div style={{ fontSize:20, marginBottom:3, filter:disabled?"grayscale(1)":"none", animation:!disabled&&!isActive?"none":"none" }}>{a.icon}</div>
+        <div style={{ fontSize:11, fontWeight:800, color:disabled?"rgba(255,255,255,.25)":"#F5F0EB", marginBottom:1, lineHeight:1.3 }}>{a.name.split(" ").slice(0,3).join(" ")}</div>
+        <div style={{ fontSize:9, color:disabled?"rgba(255,255,255,.15)":a.color+"cc", marginBottom:5, lineHeight:1.3 }}>{a.pole}</div>
+        <div style={{ fontSize:8, color:disabled?"rgba(255,255,255,.1)":"rgba(255,255,255,.3)", marginBottom:5 }}>{disabled?"Agent desactive":a.status}</div>
+        {!disabled && <div style={{ display:"inline-flex", alignItems:"center", gap:3, padding:"2px 7px", borderRadius:100, background:a.color+"12", border:"1px solid "+a.color+"25", color:a.color, fontSize:8, fontWeight:700 }}>
+          <div style={{ width:4, height:4, borderRadius:"50%", background:a.color }}/>Actif
         </div>}
-        {disabled && <div style={{ fontSize:9, color:"rgba(255,255,255,.2)", textTransform:"uppercase" }}>Desactive</div>}
         {isActive && !disabled && (
-          <div style={{ marginTop:8, padding:"4px 8px", borderRadius:6, background:(seve==="red"?"rgba(224,82,82,.1)":"rgba(245,158,11,.1)"), border:"1px solid "+(seve==="red"?"rgba(224,82,82,.3)":"rgba(245,158,11,.3)"), color:(seve==="red"?"#E05252":"#F59E0B"), fontSize:9, fontWeight:700 }} className="blink">
-            {seve==="red"?"CRITIQUE ! [Prendre controle]":"IA active... [Inspecter]"}
+          <div style={{ marginTop:7, padding:"4px 7px", borderRadius:6, background:(seve==="red"?"rgba(224,82,82,.1)":"rgba(245,158,11,.1)"), border:"1px solid "+(seve==="red"?"rgba(224,82,82,.3)":"rgba(245,158,11,.3)"), color:(seve==="red"?"#E05252":"#F59E0B"), fontSize:8, fontWeight:700 }} className="blink">
+            {seve==="red"?"CRITIQUE [Prendre controle]":"IA active [Inspecter]"}
           </div>
         )}
       </div>
     );
   }
 
+  const POLES = [
+    { label:"Autorite Supreme", ids:["tribunal"], color:"#A78BFA" },
+    { label:"Commandant Central", ids:["general"], color:"#FF8C69" },
+    { label:"Gestion Finance", ids:["finance","audit","rgpd"], color:"#4CAF87" },
+    { label:"Maintenance Frontend", ids:["reparateur","sentinelle","hardware","regulateur"], color:"#F97316" },
+    { label:"Protection Securite", ids:["saboteur","spectre","vaccinateur","honeypot"], color:"#E05252" },
+    { label:"Controle et Evolution", ids:["antimanip","gardien","greffier","porteparole"], color:"#EC4899" },
+    { label:"Legal et Tracabilite", ids:["certificateur"], color:"#0EA5E9" },
+  ];
+
   return (
     <div>
-      <style>{"@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}} @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}} .blink{animation:blink 1s infinite} .fadeUp{animation:fadeUp .35s ease both}"}</style>
+      <style>{"@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} @keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}} @keyframes flow{0%{opacity:.2}50%{opacity:.8}100%{opacity:.2}} .blink{animation:blink 1s infinite} .fadeUp{animation:fadeUp .3s ease both} .flow{animation:flow 2s infinite}"}</style>
 
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
         <div>
-          <div style={{ fontFamily:"serif", fontSize:25, color:"#F5F0EB", marginBottom:8 }}>Ecosysteme IA - L Arbre</div>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"5px 14px", borderRadius:100, background:seveInfo.bg, border:"1px solid "+seveInfo.color+"50", color:seveInfo.color, fontSize:11, fontWeight:800 }} className={seve!=="green"?"blink":""}>
+          <div style={{ fontFamily:"serif", fontSize:24, color:"#F5F0EB", marginBottom:7 }}>Ecosysteme IA - L Arbre</div>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"5px 14px", borderRadius:100, background:seveInfo.bg, border:"1px solid "+seveInfo.color+"50", color:seveInfo.color, fontSize:11, fontWeight:800 }} className={seve!=="green"?"blink":""}>
             <div style={{ width:7, height:7, borderRadius:"50%", background:seveInfo.color, boxShadow:"0 0 7px "+seveInfo.color }}/>
             {seveInfo.label}
           </div>
@@ -1350,95 +1369,81 @@ function SecurityTree() {
         </button>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
-        <div style={{ background:"rgba(76,175,135,.05)", border:"1px solid rgba(76,175,135,.15)", borderRadius:11, padding:"12px 14px" }}>
-          <div style={{ fontSize:9, fontWeight:800, color:"#4CAF87", textTransform:"uppercase", letterSpacing:".08em", marginBottom:5 }}>Monde Reel</div>
-          <div style={{ fontSize:20, fontWeight:900, color:"#4CAF87", marginBottom:2 }}>260 EUR</div>
-          <div style={{ fontSize:10, color:"rgba(76,175,135,.6)" }}>MRR Production - 2 actifs x 130 EUR | Stable</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:9, marginBottom:14 }}>
+        <div style={{ background:"rgba(76,175,135,.05)", border:"1px solid rgba(76,175,135,.12)", borderRadius:10, padding:"11px 13px" }}>
+          <div style={{ fontSize:9, fontWeight:800, color:"#4CAF87", textTransform:"uppercase", marginBottom:4 }}>Monde Reel</div>
+          <div style={{ fontSize:19, fontWeight:900, color:"#4CAF87" }}>260 EUR</div>
+          <div style={{ fontSize:9, color:"rgba(76,175,135,.6)" }}>MRR - 2 actifs x 130 EUR | Stable</div>
         </div>
-        <div style={{ background:"rgba(167,139,250,.05)", border:"1px solid rgba(167,139,250,.15)", borderRadius:11, padding:"12px 14px" }}>
-          <div style={{ fontSize:9, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", letterSpacing:".08em", marginBottom:5 }}>Labo Crash-Test</div>
-          <div style={{ fontSize:10, color:"rgba(167,139,250,.7)", lineHeight:1.6 }}>Zone virtuelle - zero impact production. 9 scenarios disponibles.</div>
+        <div style={{ background:"rgba(167,139,250,.05)", border:"1px solid rgba(167,139,250,.12)", borderRadius:10, padding:"11px 13px" }}>
+          <div style={{ fontSize:9, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", marginBottom:4 }}>Labo Crash-Test</div>
+          <div style={{ fontSize:10, color:"rgba(167,139,250,.7)", lineHeight:1.5 }}>9 scenarios - zero impact production</div>
         </div>
-        <div style={{ background:"rgba(91,158,245,.05)", border:"1px solid rgba(91,158,245,.15)", borderRadius:11, padding:"12px 14px" }}>
-          <div style={{ fontSize:9, fontWeight:800, color:"#5B9EF5", textTransform:"uppercase", letterSpacing:".08em", marginBottom:5 }}>Radar IA</div>
-          <div style={{ fontSize:10, color:"rgba(91,158,245,.7)", lineHeight:1.6 }}>9 agents actifs | Prochain test Chaos Monkey : ~10 min</div>
+        <div style={{ background:"rgba(91,158,245,.05)", border:"1px solid rgba(91,158,245,.12)", borderRadius:10, padding:"11px 13px" }}>
+          <div style={{ fontSize:9, fontWeight:800, color:"#5B9EF5", textTransform:"uppercase", marginBottom:4 }}>Radar IA</div>
+          <div style={{ fontSize:10, color:"rgba(91,158,245,.7)", lineHeight:1.5 }}>18 agents actifs | Chaos Monkey : ~10 min</div>
         </div>
       </div>
 
-      <div style={killed?{opacity:.2,filter:"grayscale(1)",pointerEvents:"none",transition:"all .5s"}:{}}>
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:0 }}>
+      <div style={killed?{opacity:.15,filter:"grayscale(1)",pointerEvents:"none",transition:"all .5s"}:{}}>
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {POLES.map((pole, pi) => (
+            <div key={pi}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
+                <div style={{ fontSize:9, fontWeight:800, color:pole.color+"99", textTransform:"uppercase", letterSpacing:".06em" }}>{pole.label}</div>
+                <div style={{ flex:1, height:1, background:"rgba(255,255,255,.05)" }}/>
+                {pi > 0 && <div style={{ fontSize:9, color:"rgba(255,255,255,.15)" }} className="flow">{">>> seve >>>"}</div>}
+              </div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                {pole.ids.map(id => <AgentCard key={id} id={id} wide={pole.ids.length===1}/>)}
+              </div>
+            </div>
+          ))}
+        </div>
 
-          <AgentCard id="tribunal" wide/>
-          <div style={{ width:2, height:24, background:"rgba(255,255,255,.1)" }}/>
-
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <AgentCard id="saboteur"/>
-            <div style={{ width:16, height:2, background:"rgba(255,255,255,.1)" }}/>
-            <AgentCard id="general" wide/>
-            <div style={{ width:16, height:2, background:"rgba(255,255,255,.1)" }}/>
-            <AgentCard id="porteparole"/>
-          </div>
-
-          <div style={{ width:2, height:24, background:"rgba(255,255,255,.1)" }}/>
-          <div style={{ width:"90%", maxWidth:900, position:"relative", height:20 }}>
-            <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"rgba(255,255,255,.08)" }}/>
-            {[0,1,2,3,4,5,6,7].map(i=><div key={i} style={{ position:"absolute", top:0, left:(6.25+i*12.5)+"%", width:2, height:20, background:"rgba(255,255,255,.08)", transform:"translateX(-50%)" }}/>)}
-          </div>
-          <div style={{ height:6 }}/>
-
-          <div style={{ display:"flex", gap:8, width:"100%", maxWidth:900, flexWrap:"wrap", justifyContent:"center" }}>
-            {["finance","audit","reparateur","sentinelle","spectre","gardien","greffier"].map(id=>(
-              <AgentCard key={id} id={id}/>
+        <div style={{ marginTop:16, background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.12)", borderRadius:12, padding:"15px 17px" }}>
+          <div style={{ fontSize:10, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", letterSpacing:".08em", marginBottom:3 }}>Salle d Entrainement Tactique - 9 Scenarios</div>
+          <div style={{ fontSize:9, color:"rgba(167,139,250,.5)", marginBottom:11 }}>Zero impact production</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginBottom:11 }}>
+            {SCENARIOS.map(sc=>(
+              <button key={sc.key} disabled={scenarioRunning||killed} style={{ padding:"9px 8px", borderRadius:8, border:"1px solid "+sc.color+"30", background:sc.color+"08", color:sc.color, fontFamily:"inherit", fontSize:9, fontWeight:700, cursor:(scenarioRunning||killed)?"not-allowed":"pointer", opacity:(scenarioRunning||killed)?.5:1, textAlign:"left" }} onClick={()=>runScenario(sc)}>
+                {sc.label}
+              </button>
             ))}
           </div>
-
-          <div style={{ width:"100%", maxWidth:900, marginTop:18, background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.15)", borderRadius:13, padding:"16px 18px" }}>
-            <div style={{ fontSize:10, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", letterSpacing:".08em", marginBottom:3 }}>Salle d Entrainement Tactique - 9 Scenarios</div>
-            <div style={{ fontSize:10, color:"rgba(167,139,250,.5)", marginBottom:12 }}>Simulations securite - zero impact production</div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:7, marginBottom:12 }}>
-              {SCENARIOS.map(sc=>(
-                <button key={sc.key} disabled={scenarioRunning||killed} style={{ padding:"9px 10px", borderRadius:8, border:"1px solid "+sc.color+"30", background:sc.color+"08", color:sc.color, fontFamily:"inherit", fontSize:10, fontWeight:700, cursor:(scenarioRunning||killed)?"not-allowed":"pointer", opacity:(scenarioRunning||killed)?.5:1, textAlign:"left" }} onClick={()=>{runScenario(sc);openPanel(sc.node);}}>
-                  {sc.label}
-                </button>
-              ))}
-            </div>
-            <div style={{ background:"#060606", borderRadius:9, padding:"12px 14px", height:140, overflowY:"auto", fontFamily:"monospace", fontSize:10, display:"flex", flexDirection:"column", gap:3, border:"1px solid rgba(76,175,135,.12)" }}>
-              {logs.length===0 ? <div style={{ color:"rgba(76,175,135,.25)" }}>{">"} En attente d un scenario...</div> :
-                logs.map((log,i)=><div key={i} style={{ color:"#4CAF87" }} className="fadeUp">{">"} {log}</div>)
-              }
-            </div>
-            {seve !== "green" && (
-              <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                <button style={{ flex:1, padding:"11px", borderRadius:9, border:"none", background:"linear-gradient(135deg,#4CAF87,#2D9B6F)", color:"#fff", fontFamily:"inherit", fontSize:11, fontWeight:800, cursor:"pointer" }} onClick={autoRepair}>
-                  Autoriser reparation automatique par l IA
-                </button>
-                <button style={{ flex:1, padding:"11px", borderRadius:9, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#A89F96", fontFamily:"inherit", fontSize:11, fontWeight:700, cursor:"pointer" }} onClick={()=>setShowManual(m=>!m)}>
-                  Obtenir procedure manuelle pour Claude
-                </button>
-              </div>
-            )}
-            {showManual && (
-              <div style={{ marginTop:10, background:"#0a0a0a", borderRadius:9, padding:"14px", border:"1px solid rgba(255,140,105,.2)" }}>
-                <div style={{ fontSize:10, fontWeight:800, color:"#FF8C69", marginBottom:8 }}>Procedure Manuelle - A copier dans Claude</div>
-                <div style={{ fontFamily:"monospace", fontSize:10, color:"#A89F96", lineHeight:1.8 }}>
-                  1. Ouvrir Terminal sur MacBook<br/>
-                  2. cd ~/Downloads/novacaisse-app<br/>
-                  3. git log --oneline -5 (identifier le dernier commit stable)<br/>
-                  4. Expliquer l erreur a Claude avec le log exact<br/>
-                  5. Appliquer le correctif sur src/App.jsx<br/>
-                  6. git add -f src/App.jsx && git commit -m "Fix" && git push origin main
-                </div>
-              </div>
-            )}
+          <div style={{ background:"#050505", borderRadius:8, padding:"11px 13px", height:130, overflowY:"auto", fontFamily:"monospace", fontSize:10, display:"flex", flexDirection:"column", gap:3, border:"1px solid rgba(76,175,135,.1)" }}>
+            {logs.length===0 ? <div style={{ color:"rgba(76,175,135,.2)" }}>{">"} En attente d un scenario...</div> :
+              logs.map((log,i)=><div key={i} style={{ color:"#4CAF87" }} className="fadeUp">{">"} {log}</div>)
+            }
           </div>
+          {seve !== "green" && (
+            <div style={{ display:"flex", gap:8, marginTop:9 }}>
+              <button style={{ flex:1, padding:"10px", borderRadius:8, border:"none", background:"linear-gradient(135deg,#4CAF87,#2D9B6F)", color:"#fff", fontFamily:"inherit", fontSize:11, fontWeight:800, cursor:"pointer" }} onClick={autoRepair}>
+                Autoriser reparation automatique IA
+              </button>
+              <button style={{ flex:1, padding:"10px", borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.03)", color:"#A89F96", fontFamily:"inherit", fontSize:10, fontWeight:700, cursor:"pointer" }} onClick={()=>setShowManual(m=>!m)}>
+                Procedure manuelle pour Claude
+              </button>
+            </div>
+          )}
+          {showManual && (
+            <div style={{ marginTop:9, background:"#080808", borderRadius:8, padding:"12px", border:"1px solid rgba(255,140,105,.2)" }}>
+              <div style={{ fontSize:9, fontWeight:800, color:"#FF8C69", marginBottom:6 }}>Procedure Manuelle - Copier dans Claude</div>
+              <div style={{ fontFamily:"monospace", fontSize:9, color:"#9CA3AF", lineHeight:2 }}>
+                1. cd ~/Downloads/novacaisse-app<br/>
+                2. node_modules/.bin/vite build 2>&1 | head -20<br/>
+                3. Copier l erreur exacte et l expliquer a Claude<br/>
+                4. git add -f src/App.jsx && git commit && git push
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {killed&&(
         <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.9)", zIndex:9990, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:14 }} onClick={()=>setKilled(false)}>
           <div style={{ fontSize:48 }}>🔴</div>
-          <div style={{ fontSize:17, fontWeight:900, color:"#E05252", textAlign:"center", lineHeight:1.5 }}>SYSTEME FIGE PAR LE CREATEUR HUMAIN<br/>TOUTES LES IA SONT DESACTIVEES</div>
+          <div style={{ fontSize:16, fontWeight:900, color:"#E05252", textAlign:"center", lineHeight:1.6 }}>SYSTEME FIGE PAR LE CREATEUR HUMAIN<br/>TOUTES LES IA SONT DESACTIVEES</div>
           <div style={{ fontSize:11, color:"rgba(255,255,255,.3)" }}>Cliquer pour reactiver</div>
         </div>
       )}
@@ -1446,95 +1451,87 @@ function SecurityTree() {
       {panelOpen&&persona&&(
         <>
           <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,.5)", zIndex:998, backdropFilter:"blur(4px)" }} onClick={()=>setPanelOpen(false)}/>
-          <div style={{ position:"fixed", top:0, right:0, bottom:0, width:420, background:"#0c0b0a", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"20px 18px", overflowY:"auto", display:"flex", flexDirection:"column", gap:12 }}>
-
+          <div style={{ position:"fixed", top:0, right:0, bottom:0, width:410, background:"#0c0b0a", borderLeft:"1px solid rgba(255,255,255,.08)", zIndex:999, padding:"20px 17px", overflowY:"auto", display:"flex", flexDirection:"column", gap:11 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:11 }}>
-                <div style={{ width:46, height:46, borderRadius:11, background:persona.color+"18", border:"1.5px solid "+persona.color+"40", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
-                  <div style={{ fontSize:8 }}>{persona.hat}</div>
-                  <div>{persona.icon}</div>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ width:44, height:44, borderRadius:10, background:persona.color+"18", border:"1.5px solid "+persona.color+"40", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
+                  <div style={{ fontSize:6 }}>{persona.hat}</div>
+                  {persona.icon}
                 </div>
                 <div>
-                  <div style={{ fontSize:14, fontWeight:800, color:"#F5F0EB" }}>{persona.name}</div>
-                  <div style={{ fontSize:10, color:persona.color }}>{persona.role}</div>
+                  <div style={{ fontSize:13, fontWeight:800, color:"#F5F0EB" }}>{persona.name}</div>
+                  <div style={{ fontSize:10, color:persona.color }}>{persona.pole}</div>
+                  <div style={{ fontSize:9, color:"rgba(255,255,255,.3)" }}>{persona.status}</div>
                 </div>
               </div>
               <button style={{ width:26, height:26, borderRadius:6, border:"1px solid rgba(255,255,255,.1)", background:"transparent", color:"#A89F96", fontSize:12, cursor:"pointer" }} onClick={()=>setPanelOpen(false)}>X</button>
             </div>
 
-            <div style={{ background:"rgba(76,175,135,.05)", border:"1px solid rgba(76,175,135,.12)", borderRadius:9, padding:"11px 13px" }}>
-              <div style={{ fontSize:9, fontWeight:800, color:"#4CAF87", textTransform:"uppercase", marginBottom:4 }}>Monde Reel - Production</div>
-              <div style={{ fontSize:11, color:"rgba(76,175,135,.8)" }}>Statut : Stable | MRR : 260 EUR | 2 tenants actifs</div>
+            <div style={{ background:"rgba(76,175,135,.04)", border:"1px solid rgba(76,175,135,.1)", borderRadius:9, padding:"10px 12px" }}>
+              <div style={{ fontSize:9, fontWeight:800, color:"#4CAF87", textTransform:"uppercase", marginBottom:3 }}>Production Stable</div>
+              <div style={{ fontSize:10, color:"rgba(76,175,135,.8)" }}>MRR : 260 EUR | 2 tenants actifs | Supabase OK</div>
             </div>
 
-            <div style={{ background:"rgba(167,139,250,.05)", border:"1px solid rgba(167,139,250,.12)", borderRadius:9, padding:"11px 13px" }}>
-              <div style={{ fontSize:9, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", marginBottom:4 }}>Labo de Crash-Test</div>
-              <div style={{ fontSize:11, color:"rgba(167,139,250,.7)" }}>Zone virtuelle - zero impact sur vrais clients</div>
+            <div style={{ background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.1)", borderRadius:9, padding:"10px 12px" }}>
+              <div style={{ fontSize:9, fontWeight:800, color:"#A78BFA", textTransform:"uppercase", marginBottom:3 }}>Labo de Crash-Test</div>
+              <div style={{ fontSize:10, color:"rgba(167,139,250,.7)" }}>Zone virtuelle - zero impact vrais clients</div>
             </div>
 
             {panelCtx === "tribunal" && (
               <div>
-                <button style={{ width:"100%", padding:"9px", borderRadius:9, border:"1px solid rgba(167,139,250,.3)", background:"rgba(167,139,250,.08)", color:"#A78BFA", fontFamily:"inherit", fontSize:11, fontWeight:700, cursor:"pointer", marginBottom:10 }} onClick={()=>setShowConstitution(c=>!c)}>
-                  {showConstitution ? "Masquer" : "Afficher"} la Constitution Sacree de l Arbre
+                <button style={{ width:"100%", padding:"9px", borderRadius:8, border:"1px solid rgba(167,139,250,.25)", background:"rgba(167,139,250,.06)", color:"#A78BFA", fontFamily:"inherit", fontSize:10, fontWeight:700, cursor:"pointer", marginBottom:8 }} onClick={()=>setShowConstitution(c=>!c)}>
+                  {showConstitution?"Masquer":"Afficher"} la Constitution Sacree
                 </button>
-                {showConstitution && (
-                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                    {CONSTITUTION.map((c,i)=>(
-                      <div key={i} style={{ background:"rgba(167,139,250,.05)", border:"1px solid rgba(167,139,250,.12)", borderRadius:8, padding:"10px 12px" }}>
-                        <div style={{ display:"flex", gap:8, alignItems:"baseline", marginBottom:3 }}>
-                          <span style={{ fontSize:10, fontWeight:800, color:"#A78BFA" }}>{c.art}</span>
-                          <span style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,.6)" }}>{c.title}</span>
-                        </div>
-                        <div style={{ fontSize:11, color:"rgba(255,255,255,.35)", lineHeight:1.5 }}>{c.text}</div>
-                      </div>
-                    ))}
+                {showConstitution && CONSTITUTION.map((c,i)=>(
+                  <div key={i} style={{ background:"rgba(167,139,250,.04)", border:"1px solid rgba(167,139,250,.1)", borderRadius:7, padding:"9px 11px", marginBottom:5 }}>
+                    <div style={{ fontSize:9, fontWeight:800, color:"#A78BFA", marginBottom:2 }}>{c.art} - {c.title}</div>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,.3)", lineHeight:1.5 }}>{c.text}</div>
                   </div>
-                )}
+                ))}
               </div>
             )}
 
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 13px", borderRadius:9, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.06)" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 12px", borderRadius:9, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.06)" }}>
               <div>
                 <div style={{ fontSize:12, fontWeight:700, color:"#F5F0EB" }}>Mode Manuel Admin</div>
-                <div style={{ fontSize:10, color:"#6B635C" }}>L IA se fige et attend vos ordres</div>
+                <div style={{ fontSize:9, color:"#6B635C" }}>L IA se fige et attend vos ordres</div>
               </div>
-              <div style={{ width:40, height:22, borderRadius:11, background:manualMode?"#FF8C69":"rgba(255,255,255,.1)", padding:2, cursor:"pointer", display:"flex", alignItems:"center", transition:"background .2s" }} onClick={toggleManual}>
-                <div style={{ width:17, height:17, borderRadius:"50%", background:"#fff", transform:manualMode?"translateX(18px)":"none", transition:"transform .2s" }}/>
+              <div style={{ width:38, height:20, borderRadius:10, background:manualMode?"#FF8C69":"rgba(255,255,255,.1)", padding:2, cursor:"pointer", display:"flex", alignItems:"center", transition:"background .2s" }} onClick={toggleManual}>
+                <div style={{ width:15, height:15, borderRadius:"50%", background:"#fff", transform:manualMode?"translateX(18px)":"none", transition:"transform .2s" }}/>
               </div>
             </div>
 
             <div>
               <div style={{ fontSize:9, fontWeight:800, color:"rgba(255,255,255,.2)", textTransform:"uppercase", marginBottom:7 }}>Chat Direct</div>
-              <div style={{ background:"#080808", borderRadius:9, border:"1px solid rgba(255,255,255,.05)", padding:"10px", marginBottom:9, maxHeight:200, overflowY:"auto", display:"flex", flexDirection:"column", gap:7 }}>
+              <div style={{ background:"#080808", borderRadius:8, border:"1px solid rgba(255,255,255,.05)", padding:"9px", marginBottom:8, maxHeight:180, overflowY:"auto", display:"flex", flexDirection:"column", gap:6 }}>
                 {chatHistory.map((m,i)=>(
                   <div key={i} style={{ display:"flex", justifyContent:m.from==="human"?"flex-end":"flex-start" }}>
-                    <div style={{ padding:"7px 11px", borderRadius:9, fontSize:11, lineHeight:1.5, background:m.from==="human"?"rgba(255,140,105,.1)":"rgba(255,255,255,.04)", color:m.from==="human"?"#FF8C69":"#A89F96", maxWidth:"87%", border:"1px solid "+(m.from==="human"?"rgba(255,140,105,.18)":"rgba(255,255,255,.05)") }}>{m.text}</div>
+                    <div style={{ padding:"7px 10px", borderRadius:8, fontSize:11, lineHeight:1.5, background:m.from==="human"?"rgba(255,140,105,.1)":"rgba(255,255,255,.04)", color:m.from==="human"?"#FF8C69":"#A89F96", maxWidth:"87%", border:"1px solid "+(m.from==="human"?"rgba(255,140,105,.18)":"rgba(255,255,255,.05)") }}>{m.text}</div>
                   </div>
                 ))}
               </div>
               <div style={{ display:"flex", gap:7 }}>
-                <input style={{ flex:1, padding:"9px 13px", borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#F5F0EB", fontFamily:"inherit", fontSize:11, outline:"none" }} placeholder="Discuter avec le responsable..." value={chatMsg} onChange={e=>setChatMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()}/>
-                <button style={{ padding:"9px 13px", borderRadius:8, border:"none", background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontFamily:"inherit", fontSize:11, fontWeight:700, cursor:"pointer" }} onClick={sendChat}>Envoyer</button>
+                <input style={{ flex:1, padding:"9px 12px", borderRadius:7, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#F5F0EB", fontFamily:"inherit", fontSize:11, outline:"none" }} placeholder="Discuter avec le responsable..." value={chatMsg} onChange={e=>setChatMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()}/>
+                <button style={{ padding:"9px 12px", borderRadius:7, border:"none", background:"linear-gradient(135deg,#FF8C69,#E8704A)", color:"#fff", fontFamily:"inherit", fontSize:11, fontWeight:700, cursor:"pointer" }} onClick={sendChat}>Envoyer</button>
               </div>
             </div>
 
             {seve !== "green" && (
               <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-                <button style={{ padding:"12px", borderRadius:9, border:"none", background:"linear-gradient(135deg,#4CAF87,#2D9B6F)", color:"#fff", fontFamily:"inherit", fontSize:12, fontWeight:800, cursor:"pointer" }} onClick={()=>{autoRepair();setPanelOpen(false);}}>
-                  Autoriser reparation automatique par l IA
+                <button style={{ padding:"11px", borderRadius:8, border:"none", background:"linear-gradient(135deg,#4CAF87,#2D9B6F)", color:"#fff", fontFamily:"inherit", fontSize:11, fontWeight:800, cursor:"pointer" }} onClick={()=>{autoRepair();setPanelOpen(false);}}>
+                  Autoriser reparation automatique IA
                 </button>
-                <button style={{ padding:"12px", borderRadius:9, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.04)", color:"#A89F96", fontFamily:"inherit", fontSize:11, fontWeight:700, cursor:"pointer" }} onClick={()=>setShowManual(m=>!m)}>
-                  Obtenir procedure manuelle pour Claude
+                <button style={{ padding:"11px", borderRadius:8, border:"1px solid rgba(255,255,255,.1)", background:"rgba(255,255,255,.03)", color:"#A89F96", fontFamily:"inherit", fontSize:10, fontWeight:700, cursor:"pointer" }} onClick={()=>setShowManual(m=>!m)}>
+                  Procedure manuelle pour Claude
                 </button>
                 {showManual && (
-                  <div style={{ background:"#0a0a0a", borderRadius:9, padding:"13px", border:"1px solid rgba(255,140,105,.2)" }}>
-                    <div style={{ fontSize:9, fontWeight:800, color:"#FF8C69", marginBottom:7 }}>Procedure Manuelle - Copier dans Claude</div>
-                    <div style={{ fontFamily:"monospace", fontSize:10, color:"#9CA3AF", lineHeight:1.9 }}>
+                  <div style={{ background:"#080808", borderRadius:8, padding:"12px", border:"1px solid rgba(255,140,105,.2)" }}>
+                    <div style={{ fontSize:9, fontWeight:800, color:"#FF8C69", marginBottom:6 }}>Copier dans Claude</div>
+                    <div style={{ fontFamily:"monospace", fontSize:9, color:"#9CA3AF", lineHeight:2 }}>
                       1. cd ~/Downloads/novacaisse-app<br/>
-                      2. git log --oneline -5<br/>
-                      3. node_modules/.bin/vite build 2>&1 | head -20<br/>
-                      4. Copier l erreur et expliquer a Claude<br/>
-                      5. git add -f src/App.jsx && git commit && git push
+                      2. node_modules/.bin/vite build 2>&1 | head -20<br/>
+                      3. Copier l erreur exacte et expliquer a Claude<br/>
+                      4. git add -f src/App.jsx && git commit && git push
                     </div>
                   </div>
                 )}
