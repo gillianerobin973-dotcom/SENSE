@@ -1559,10 +1559,7 @@ function SecurityTree() {
                   <div style={{ background:"#050505", borderRadius:8, padding:"12px", border:"1px solid rgba(255,140,105,.12)" }}>
                     <div style={{ fontSize:8, fontWeight:800, color:"#FF8C69", marginBottom:6 }}>Copier dans Claude sur MacBook</div>
                     <pre style={{ fontFamily:"monospace", fontSize:9, color:"#6B7280", lineHeight:1.9, margin:0 }}>
-{"1. cd ~/Downloads/novacaisse-app
-2. node_modules/.bin/vite build 2>&1 | head -20
-3. Copier l erreur et expliquer a Claude
-4. git add -f src/App.jsx && git commit && git push"}
+"1. cd ~/Downloads/novacaisse-app\n2. vite build 2>&1 | head -20\n3. Copier erreur a Claude\n4. git add -f src/App.jsx && git push"
                     </pre>
                   </div>
                 )}
